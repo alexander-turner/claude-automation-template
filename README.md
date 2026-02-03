@@ -10,8 +10,6 @@ Pre-configured [Claude Code](https://docs.anthropic.com/en/docs/claude-code) aut
 git clone <your-repo-url> && cd <your-repo> && ./setup.sh
 ```
 
-That's it. Git hooks are configured automatically.
-
 ## What's Included
 
 | Component | Purpose |
