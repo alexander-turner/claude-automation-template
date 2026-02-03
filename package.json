@@ -4,12 +4,12 @@
   "description": "Project with Claude Code automation",
   "type": "module",
   "scripts": {
-    "dev": "echo 'Add your dev command'",
-    "build": "echo 'Add your build command'",
-    "start": "echo 'Add your start command'",
-    "test": "echo 'Add your test command'",
-    "lint": "echo 'Add your lint command (e.g., eslint .)'",
-    "check": "echo 'Add your type check command (e.g., tsc --noEmit)'",
+    "dev": "echo 'ERROR: Configure dev script in package.json' && exit 1",
+    "build": "echo 'ERROR: Configure build script in package.json' && exit 1",
+    "start": "echo 'ERROR: Configure start script in package.json' && exit 1",
+    "test": "echo 'ERROR: Configure test script in package.json' && exit 1",
+    "lint": "echo 'ERROR: Configure lint script in package.json' && exit 1",
+    "check": "echo 'ERROR: Configure check script in package.json' && exit 1",
     "format": "prettier --write ."
   },
   "lint-staged": {
