@@ -3,6 +3,9 @@ name: Sync from Template
 # Syncs updates from the template repository automatically.
 # Runs daily or manually via "Run workflow" button.
 # No setup required - works out of the box.
+#
+# When conflicts are detected (local customizations vs template updates),
+# the PR will include detailed conflict information for Claude to help resolve.
 
 on:
   workflow_dispatch:
@@ -19,7 +22,7 @@ on:
 env:
   TEMPLATE_REPO: "alexander-turner/claude-automation-template"
   # Only sync core automation files that don't need customization
-  SYNC_PATHS: ".claude .hooks .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml"
+  SYNC_PATHS: ".claude .hooks .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml .github/workflows/claude-conflict-resolution.yaml"
   # These are excluded because they require project-specific customization
   # (comment-on-failed-checks needs workflow names, lint/test need project scripts)
   EXCLUDE_PATHS: ""
@@ -44,11 +47,16 @@ jobs:
           path: _template
           token: ${{ secrets.TEMPLATE_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Sync template files
+      - name: Sync template files with conflict detection
         id: sync
         run: |
           set -e
           changes=""
+          conflicts=""
+          conflict_details=""
+
+          # File to store conflict information for the PR body
+          echo "" > /tmp/conflict_report.md
 
           for path in $SYNC_PATHS; do
             # Skip if in exclude list
@@ -67,35 +75,140 @@ jobs:
               continue
             fi
 
-            # Create parent directory if needed
-            parent_dir=$(dirname "$path")
-            [ "$parent_dir" != "." ] && mkdir -p "$parent_dir"
-
-            # Copy from template
+            # Handle directories by processing files individually
             if [ -d "_template/$path" ]; then
-              cp -r "_template/$path" "$parent_dir/"
-            else
-              cp "_template/$path" "$path"
-            fi
+              find "_template/$path" -type f | while read template_file; do
+                rel_path="${template_file#_template/}"
 
-            # Track changes
-            if git diff --quiet -- "$path" 2>/dev/null; then
-              echo "No changes in $path"
+                # Create parent directory if needed
+                parent_dir=$(dirname "$rel_path")
+                [ "$parent_dir" != "." ] && mkdir -p "$parent_dir"
+
+                if [ -f "$rel_path" ]; then
+                  # File exists locally - check for conflicts
+                  if ! diff -q "$rel_path" "$template_file" > /dev/null 2>&1; then
+                    # Files differ - check if local file was customized from original template
+                    # Get the original template version from git history if possible
+                    original_in_git=$(git show HEAD:"$rel_path" 2>/dev/null || echo "")
+
+                    if [ -n "$original_in_git" ] && ! diff -q "$rel_path" <(echo "$original_in_git") > /dev/null 2>&1; then
+                      # Local file has been modified from what's in git - potential conflict
+                      echo "CONFLICT: $rel_path (local customizations exist)"
+                      echo "$rel_path" >> /tmp/conflict_files.txt
+
+                      # Generate conflict report
+                      {
+                        echo "### \`$rel_path\`"
+                        echo ""
+                        echo "<details>"
+                        echo "<summary>View conflict details</summary>"
+                        echo ""
+                        echo "**Current local version:**"
+                        echo "\`\`\`"
+                        head -100 "$rel_path"
+                        echo "\`\`\`"
+                        echo ""
+                        echo "**Template version:**"
+                        echo "\`\`\`"
+                        head -100 "$template_file"
+                        echo "\`\`\`"
+                        echo ""
+                        echo "**Diff (local → template):**"
+                        echo "\`\`\`diff"
+                        diff -u "$rel_path" "$template_file" | head -50 || true
+                        echo "\`\`\`"
+                        echo "</details>"
+                        echo ""
+                      } >> /tmp/conflict_report.md
+
+                      # Still copy the template version but mark as conflict
+                      cp "$template_file" "$rel_path"
+                    else
+                      # No local customizations, safe to update
+                      cp "$template_file" "$rel_path"
+                    fi
+                  fi
+                else
+                  # New file from template
+                  cp "$template_file" "$rel_path"
+                fi
+              done
             else
-              changes="$changes $path"
-              echo "Updated: $path"
+              # Single file
+              parent_dir=$(dirname "$path")
+              [ "$parent_dir" != "." ] && mkdir -p "$parent_dir"
+
+              if [ -f "$path" ]; then
+                # File exists locally - check for conflicts
+                if ! diff -q "$path" "_template/$path" > /dev/null 2>&1; then
+                  # Check if local has customizations
+                  original_in_git=$(git show HEAD:"$path" 2>/dev/null || echo "")
+
+                  if [ -n "$original_in_git" ]; then
+                    # Compare current local with git version to detect customizations
+                    if ! echo "$original_in_git" | diff -q "$path" - > /dev/null 2>&1; then
+                      echo "CONFLICT: $path (local customizations exist)"
+                      echo "$path" >> /tmp/conflict_files.txt
+
+                      {
+                        echo "### \`$path\`"
+                        echo ""
+                        echo "<details>"
+                        echo "<summary>View conflict details</summary>"
+                        echo ""
+                        echo "**Current local version:**"
+                        echo "\`\`\`"
+                        head -100 "$path"
+                        echo "\`\`\`"
+                        echo ""
+                        echo "**Template version:**"
+                        echo "\`\`\`"
+                        head -100 "_template/$path"
+                        echo "\`\`\`"
+                        echo ""
+                        echo "**Diff (local → template):**"
+                        echo "\`\`\`diff"
+                        diff -u "$path" "_template/$path" | head -50 || true
+                        echo "\`\`\`"
+                        echo "</details>"
+                        echo ""
+                      } >> /tmp/conflict_report.md
+                    fi
+                  fi
+
+                  cp "_template/$path" "$path"
+                fi
+              else
+                cp "_template/$path" "$path"
+              fi
             fi
           done
 
-          # Clean up
+          # Check for conflicts
+          if [ -f /tmp/conflict_files.txt ] && [ -s /tmp/conflict_files.txt ]; then
+            conflicts=$(cat /tmp/conflict_files.txt | tr '\n' ' ')
+            echo "has_conflicts=true" >> $GITHUB_OUTPUT
+            echo "conflict_files=$conflicts" >> $GITHUB_OUTPUT
+
+            # Store conflict report for PR body
+            conflict_report=$(cat /tmp/conflict_report.md)
+            echo "conflict_report<<EOF" >> $GITHUB_OUTPUT
+            echo "$conflict_report" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "has_conflicts=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Clean up template
           rm -rf _template
 
-          # Set output
-          if [ -n "$changes" ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "changed_paths=$changes" >> $GITHUB_OUTPUT
-          else
+          # Check for any changes
+          if git diff --quiet; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            changed=$(git diff --name-only | tr '\n' ' ')
+            echo "changed_paths=$changed" >> $GITHUB_OUTPUT
           fi
 
       - name: Show diff (dry run)
@@ -103,9 +216,16 @@ jobs:
         run: |
           echo "=== Changes that would be made ==="
           git diff
+          if [ "${{ steps.sync.outputs.has_conflicts }}" = "true" ]; then
+            echo ""
+            echo "=== CONFLICTS DETECTED ==="
+            echo "The following files have local customizations that would be overwritten:"
+            echo "${{ steps.sync.outputs.conflict_files }}"
+          fi
 
       - name: Create Pull Request
         if: inputs.dry-run != 'true' && steps.sync.outputs.has_changes == 'true'
+        id: create-pr
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.TEMPLATE_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
@@ -114,11 +234,26 @@ jobs:
           body: |
             This PR syncs updates from the template repository.
 
-            **Updated paths:**
-            ${{ steps.sync.outputs.changed_paths }}
+            **Updated paths:** ${{ steps.sync.outputs.changed_paths }}
 
             **Template repository:** ${{ env.TEMPLATE_REPO }}
 
+            ${{ steps.sync.outputs.has_conflicts == 'true' && '---
+
+            ## ⚠️ Conflicts Detected
+
+            The following files have local customizations that may be overwritten by this sync. **Please review carefully before merging.**
+
+            To get Claude'\''s help resolving these conflicts:
+            1. Comment `@claude help resolve conflicts` on this PR, or
+            2. Run the "Claude Conflict Resolution" workflow from the Actions tab
+
+            ### Conflicting Files
+
+            ' || '' }}${{ steps.sync.outputs.conflict_report }}
+
+            ---
             Please review the changes and merge if appropriate.
           branch: template-sync
           delete-branch: true
+          labels: ${{ steps.sync.outputs.has_conflicts == 'true' && 'template-sync,needs-conflict-resolution' || 'template-sync' }}

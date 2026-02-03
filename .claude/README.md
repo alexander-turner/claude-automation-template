@@ -29,6 +29,7 @@ When Claude Code starts a session, it automatically runs `session-setup.sh` whic
 Skills in `skills/` are reusable workflows that guide Claude through complex tasks:
 
 - **pr-creation.md**: Creating pull requests with mandatory self-critique before submission
+- **conflict-resolution.md**: Resolving template sync conflicts while preserving local customizations
 
 Skills are automatically available to Claude Code when working in this repository.
 
