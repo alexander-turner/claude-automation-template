@@ -31,7 +31,7 @@ CI workflows automatically skip unconfigured scripts, so you won't get failures 
 
 ## Automatic Updates
 
-Template updates sync automatically every Monday. You can also trigger manually:
+Template updates sync daily at 9am UTC. You can also trigger manually:
 1. Go to Actions → "Sync from Template"
 2. Click "Run workflow"
 
