@@ -1,7 +1,7 @@
 name: Sync from Template
 
 # Syncs updates from the template repository automatically.
-# Runs weekly or manually via "Run workflow" button.
+# Runs daily or manually via "Run workflow" button.
 # No setup required - works out of the box.
 
 on:
@@ -18,10 +18,11 @@ on:
 
 env:
   TEMPLATE_REPO: "alexander-turner/claude-automation-template"
-  # Files/directories to sync from template (space-separated)
-  SYNC_PATHS: ".claude .hooks .github/actions .github/workflows/comment-on-failed-checks.yaml .github/workflows/dependabot-auto-merge.yaml .github/workflows/template-sync.yaml"
-  # Files to never overwrite in child repos (space-separated)
-  EXCLUDE_PATHS: "CLAUDE.md package.json .github/workflows/node-tests.yaml .github/workflows/lint.yaml"
+  # Only sync core automation files that don't need customization
+  SYNC_PATHS: ".claude .hooks .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml"
+  # These are excluded because they require project-specific customization
+  # (comment-on-failed-checks needs workflow names, lint/test need project scripts)
+  EXCLUDE_PATHS: ""
 
 permissions:
   contents: write
