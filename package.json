@@ -14,11 +14,27 @@
     "format": "prettier --write ."
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,md,yaml,yml}": [
+    "*.{css,scss}": [
       "prettier --write"
     ],
-    "*.sh": [
+    "*.json": [
+      "prettier --write"
+    ],
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write"
+    ],
+    "*.{yaml,yml}": [
+      "prettier --write"
+    ],
+    "*.md": [
+      "prettier --write"
+    ],
+    "{*.sh,.hooks/*}": [
       "shfmt -i 2 -w"
+    ],
+    "*.py": [
+      "ruff check --fix",
+      "ruff format"
     ]
   },
   "devDependencies": {
