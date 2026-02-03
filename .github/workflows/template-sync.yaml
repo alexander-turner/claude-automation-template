@@ -1,11 +1,8 @@
 name: Sync from Template
 
-# This workflow syncs updates from the template repository to child repos.
-# Run manually or on a schedule to pull in template improvements.
-#
-# Setup:
-# 1. Create a PAT with repo scope and add it as TEMPLATE_SYNC_TOKEN secret
-# 2. Update TEMPLATE_REPO below with your template repository
+# Syncs updates from the template repository automatically.
+# Runs weekly or manually via "Run workflow" button.
+# No setup required - works out of the box.
 
 on:
   workflow_dispatch:
@@ -20,8 +17,7 @@ on:
     - cron: "0 9 * * 1"
 
 env:
-  # Update this to your template repository (owner/repo format)
-  TEMPLATE_REPO: "your-org/claude-automation-template"
+  TEMPLATE_REPO: "alexander-turner/claude-automation-template"
   # Files/directories to sync from template (space-separated)
   SYNC_PATHS: ".claude .hooks .github/actions .github/workflows/comment-on-failed-checks.yaml .github/workflows/dependabot-auto-merge.yaml .github/workflows/template-sync.yaml"
   # Files to never overwrite in child repos (space-separated)
