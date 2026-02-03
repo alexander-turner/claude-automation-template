@@ -4,31 +4,26 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Overview
 
-**TODO: Describe your project in 1-2 sentences**
+This project uses the Claude automation template with pre-configured git hooks and CI workflows. Customize this section with your project's description.
 
 ## Development Commands
 
 ```bash
-pnpm dev          # Development server
-pnpm build        # Production build
-pnpm test         # Run tests
-pnpm lint         # Run linter
-pnpm format       # Format code
+pnpm install      # Install dependencies (also configures git hooks)
+pnpm format       # Format code with Prettier
 ```
 
-## Architecture
-
-**TODO: Describe your project's architecture, key directories, and technologies**
-
-```
-src/              # Source code
-tests/            # Test files
-```
+Configure additional scripts in `package.json` as needed:
+- `pnpm dev` - Development server
+- `pnpm build` - Production build
+- `pnpm test` - Run tests
+- `pnpm lint` - Run linter
 
 ## Git Workflow
 
-Git hooks are configured automatically. Commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+Git hooks are configured automatically after `pnpm install`.
 
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `feat:` New features
 - `fix:` Bug fixes
 - `refactor:` Code refactoring
@@ -38,10 +33,19 @@ Git hooks are configured automatically. Commits must follow [Conventional Commit
 
 **Pull requests**: Follow `.claude/skills/pr-creation.md` before creating any PR.
 
-## Testing Requirements
+## Project Structure
 
-**TODO: Describe your testing requirements**
+```
+src/              # Source code (create as needed)
+tests/            # Test files (create as needed)
+.claude/          # Claude Code configuration
+.hooks/           # Git hooks (pre-commit, commit-msg)
+.github/          # GitHub Actions workflows
+```
 
-## Key Technical Details
+## Customization Checklist
 
-**TODO: Add project-specific patterns, conventions, and gotchas**
+After cloning, update the following:
+- [ ] This file (`CLAUDE.md`) - Add project-specific details
+- [ ] `package.json` - Configure dev/build/test/lint scripts
+- [ ] `.github/workflows/comment-on-failed-checks.yaml` - Add your workflow names

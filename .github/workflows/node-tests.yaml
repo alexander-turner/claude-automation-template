@@ -33,5 +33,16 @@ jobs:
       - name: Setup base environment
         uses: ./.github/actions/setup-base-env
 
+      - name: Check if test script is configured
+        id: check
+        run: |
+          if grep -q "ERROR: Configure test script" package.json; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "::notice::Test script not configured, skipping tests"
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run tests
+        if: steps.check.outputs.configured == 'true'
         run: pnpm test

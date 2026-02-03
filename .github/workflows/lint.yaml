@@ -33,8 +33,26 @@ jobs:
       - name: Setup base environment
         uses: ./.github/actions/setup-base-env
 
+      - name: Check if scripts are configured
+        id: check
+        run: |
+          CHECK_CONFIGURED=true
+          LINT_CONFIGURED=true
+          if grep -q "ERROR: Configure check script" package.json; then
+            CHECK_CONFIGURED=false
+            echo "::notice::Type check script not configured, skipping"
+          fi
+          if grep -q "ERROR: Configure lint script" package.json; then
+            LINT_CONFIGURED=false
+            echo "::notice::Lint script not configured, skipping"
+          fi
+          echo "check_configured=$CHECK_CONFIGURED" >> $GITHUB_OUTPUT
+          echo "lint_configured=$LINT_CONFIGURED" >> $GITHUB_OUTPUT
+
       - name: Type check
+        if: steps.check.outputs.check_configured == 'true'
         run: pnpm check
 
       - name: Lint
+        if: steps.check.outputs.lint_configured == 'true'
         run: pnpm lint

@@ -6,40 +6,30 @@ Pre-configured [Claude Code](https://docs.anthropic.com/en/docs/claude-code) aut
 
 ```bash
 # 1. Create repo from template (click "Use this template" on GitHub)
-
-# 2. Clone and install
-git clone <your-repo-url>
-cd <your-repo>
-pnpm install        # or: npm install -g pnpm && pnpm install
-
-# 3. Enable git hooks
-git config core.hooksPath .hooks
-
-# 4. Verify setup
-git config core.hooksPath   # Should print: .hooks
+# 2. Clone and setup
+git clone <your-repo-url> && cd <your-repo> && ./setup.sh
 ```
 
-Then customize `CLAUDE.md` with your project details.
+That's it. Git hooks are configured automatically.
 
 ## What's Included
 
 | Component | Purpose |
 |-----------|---------|
-| `.claude/settings.json` | Runs setup script when Claude Code starts |
-| `.claude/hooks/session-setup.sh` | Installs tools, configures git, authenticates gh |
-| `.claude/skills/pr-creation.md` | PR workflow with mandatory self-critique |
-| `.hooks/pre-commit` | Runs lint-staged on commit |
-| `.hooks/commit-msg` | Validates conventional commit format |
-| `.github/workflows/*` | CI, Dependabot auto-merge, failure notifications |
+| `.claude/` | Claude Code session setup + PR creation skill |
+| `.hooks/` | Pre-commit (lint-staged) + commit message validation |
+| `.github/workflows/` | CI, Dependabot auto-merge, failure notifications |
 
 ## Customization
 
-1. **Edit `CLAUDE.md`** - Add your project's commands, architecture, and guidelines
-2. **Edit `package.json`** - Configure lint-staged rules for your file types
-3. **Edit `.github/workflows/comment-on-failed-checks.yaml`** - Add your workflow names to the trigger list
+Edit these files when ready:
+- `CLAUDE.md` - Project details for Claude
+- `package.json` - Configure dev/build/test/lint scripts
+- `.github/workflows/comment-on-failed-checks.yaml` - Add your workflow names
+
+CI workflows automatically skip unconfigured scripts, so you won't get failures on first push.
 
 ## Requirements
 
 - Node.js 18+
-- pnpm (or npm)
 - Git 2.9+

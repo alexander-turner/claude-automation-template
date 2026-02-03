@@ -4,6 +4,7 @@
   "description": "Project with Claude Code automation",
   "type": "module",
   "scripts": {
+    "postinstall": "git config core.hooksPath .hooks || true",
     "dev": "echo 'ERROR: Configure dev script in package.json' && exit 1",
     "build": "echo 'ERROR: Configure build script in package.json' && exit 1",
     "start": "echo 'ERROR: Configure start script in package.json' && exit 1",
