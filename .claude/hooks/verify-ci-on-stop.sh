@@ -19,7 +19,7 @@ run_check() {
         return 0
     else
         FAILURES="${FAILURES}$name failed. "
-        OUTPUT="${OUTPUT}=== $name ===\n$(echo "$result" | tail -30)\n\n"
+        OUTPUT="${OUTPUT}=== $name ===\n${result}\n\n"
         return 1
     fi
 }
