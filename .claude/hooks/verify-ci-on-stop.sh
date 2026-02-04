@@ -10,7 +10,9 @@ cd "$PROJECT_DIR" || exit 1
 FAILURES=""
 OUTPUT=""
 
-# Run a check command, capturing failures
+# Helpers
+exists() { command -v "$1" &>/dev/null; }
+
 run_check() {
     local name="$1" cmd="$2"
     echo "Running $name..." >&2
@@ -24,7 +26,6 @@ run_check() {
     fi
 }
 
-# Check if a pnpm script exists and isn't a placeholder
 has_script() {
     [[ -f package.json ]] && \
     jq -e ".scripts.$1" package.json &>/dev/null && \
@@ -39,19 +40,10 @@ has_script check && run_check "typecheck" "pnpm check"
 # Python checks (use uv run if uv.lock exists)
 if [[ -f pyproject.toml ]] || [[ -f uv.lock ]]; then
     PREFIX=""
-    if [[ -f uv.lock ]] && command -v uv &>/dev/null; then
-        PREFIX="uv run "
-    fi
+    [[ -f uv.lock ]] && exists uv && PREFIX="uv run "
 
-    # Run ruff if available
-    if command -v ruff &>/dev/null || [[ -n "$PREFIX" ]]; then
-        run_check "ruff" "${PREFIX}ruff check ."
-    fi
-
-    # Run pytest if tests directory exists
-    if [[ -d tests ]] && { command -v pytest &>/dev/null || [[ -n "$PREFIX" ]]; }; then
-        run_check "pytest" "${PREFIX}pytest"
-    fi
+    exists ruff || [[ -n "$PREFIX" ]] && run_check "ruff" "${PREFIX}ruff check ."
+    [[ -d tests ]] && { exists pytest || [[ -n "$PREFIX" ]]; } && run_check "pytest" "${PREFIX}pytest"
 fi
 
 # Return result
