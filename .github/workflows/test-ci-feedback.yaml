@@ -1,0 +1,26 @@
+name: Test CI Feedback
+
+# Test workflow to verify the CI failure notification system works.
+# This workflow intentionally fails to trigger @claude notification.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/test-ci-feedback.yaml"
+      - "src/**"
+      - "tests/**"
+
+permissions:
+  contents: read
+
+jobs:
+  test-failure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Intentional failure for CI feedback testing
+        run: |
+          echo "This workflow intentionally fails to test CI feedback notifications."
+          echo "The comment-on-failed-checks workflow should notify @claude about this failure."
+          exit 1
