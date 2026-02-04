@@ -1,0 +1,21 @@
+name: Format check
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup base environment
+        uses: ./.github/actions/setup-base-env
+
+      - name: Check formatting
+        run: pnpm format --check
