@@ -8,21 +8,15 @@ name: Sync from Template
 # the PR will include detailed conflict information for Claude to help resolve.
 #
 # =============================================================================
-# REPO-SPECIFIC CUSTOMIZATIONS - DO NOT OVERWRITE DURING SYNC
+# HANDLING CUSTOMIZATIONS DURING SYNC
 # =============================================================================
-# The following repositories have project-specific customizations that should
-# be preserved during template sync. When resolving conflicts, keep these local
-# changes and only adopt new template features that don't break them.
+# Projects may have local customizations in synced files (e.g., project-specific
+# tools in session-setup.sh, custom pre-commit checks). When resolving conflicts:
 #
-# TurnTrout.com:
-#   - .hooks/pre-commit: Uses .timestamps integration, docformatter, pyupgrade
-#   - .hooks/commit-msg: Uses pnpm only (no npm fallback)
-#   - .claude/hooks/session-setup.sh: Installs ots (opentimestamps-client),
-#     clones .timestamps repo, uses pnpm only (no npm fallback)
-#
-# When syncing to these repos, Claude should preserve local customizations and
-# only add genuinely new features from the template. Look for comments in files
-# that say "Future Claudes: Leave this file as-is" as indicators of customizations.
+# 1. Look for header comments like "IMPORTANT: This file has project-specific
+#    customizations" or "Future Claudes: Leave these customizations as-is"
+# 2. Preserve local customizations while adopting new template features
+# 3. When in doubt, keep local changes - they exist for a reason
 # =============================================================================
 
 on:
@@ -251,8 +245,8 @@ jobs:
             The local versions have been preserved. Please suggest how to merge each conflicting file,
             keeping project-specific customizations while adopting template improvements.
 
-            IMPORTANT: Check the template-sync.yaml header comments for documented repo-specific
-            customizations. Also look for comments in files that say "Future Claudes: Leave this
-            file as-is" - these indicate intentional local customizations that should be preserved.
+            Look for header comments indicating intentional customizations (e.g., "IMPORTANT: This file
+            has project-specific customizations" or "Future Claudes: Leave these customizations as-is").
+            When in doubt, preserve local changes - they exist for a reason.
 
             Be concise. For each file, suggest what to keep from local vs adopt from template.
