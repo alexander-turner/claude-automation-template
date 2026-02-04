@@ -51,13 +51,71 @@ jobs:
         id: sync
         run: |
           set -e
-          changes=""
-          conflicts=""
-          conflict_details=""
 
-          # File to store conflict information for the PR body
-          echo "" > /tmp/conflict_report.md
+          # Initialize tracking files
+          : > /tmp/conflict_files.txt
+          : > /tmp/conflict_report.md
 
+          # Function to process a single file
+          process_file() {
+            local rel_path="$1"
+            local template_file="_template/$rel_path"
+
+            # Create parent directory if needed
+            local parent_dir=$(dirname "$rel_path")
+            [ "$parent_dir" != "." ] && mkdir -p "$parent_dir"
+
+            if [ ! -f "$rel_path" ]; then
+              # New file from template - no conflict
+              cp "$template_file" "$rel_path"
+              echo "Added: $rel_path"
+              return
+            fi
+
+            # File exists locally - check if it differs from template
+            if diff -q "$rel_path" "$template_file" > /dev/null 2>&1; then
+              # Files are identical - no action needed
+              return
+            fi
+
+            # Files differ - this is a potential conflict
+            # The local version may have customizations we want to preserve
+            echo "CONFLICT: $rel_path (local differs from template)"
+            echo "$rel_path" >> /tmp/conflict_files.txt
+
+            # Generate conflict report showing both versions
+            {
+              echo "### \`$rel_path\`"
+              echo ""
+              echo "<details>"
+              echo "<summary>View conflict details</summary>"
+              echo ""
+              echo "**Your current version:**"
+              echo "\`\`\`"
+              head -100 "$rel_path"
+              [ "$(wc -l < "$rel_path")" -gt 100 ] && echo "... (truncated)"
+              echo "\`\`\`"
+              echo ""
+              echo "**Template version:**"
+              echo "\`\`\`"
+              head -100 "$template_file"
+              [ "$(wc -l < "$template_file")" -gt 100 ] && echo "... (truncated)"
+              echo "\`\`\`"
+              echo ""
+              echo "**Diff (your version → template):**"
+              echo "\`\`\`diff"
+              diff -u "$rel_path" "$template_file" | head -80 || true
+              echo "\`\`\`"
+              echo "</details>"
+              echo ""
+            } >> /tmp/conflict_report.md
+
+            # DO NOT overwrite - preserve local version for manual review
+            # The PR will show the template wants changes but won't force them
+            echo "  -> Preserved local version (manual merge required)"
+          }
+
+          # Process each sync path
           for path in $SYNC_PATHS; do
             # Skip if in exclude list
             skip=false
@@ -79,136 +137,37 @@ jobs:
             if [ -d "_template/$path" ]; then
               find "_template/$path" -type f | while read template_file; do
                 rel_path="${template_file#_template/}"
-
-                # Create parent directory if needed
-                parent_dir=$(dirname "$rel_path")
-                [ "$parent_dir" != "." ] && mkdir -p "$parent_dir"
-
-                if [ -f "$rel_path" ]; then
-                  # File exists locally - check for conflicts
-                  if ! diff -q "$rel_path" "$template_file" > /dev/null 2>&1; then
-                    # Files differ - check if local file was customized from original template
-                    # Get the original template version from git history if possible
-                    original_in_git=$(git show HEAD:"$rel_path" 2>/dev/null || echo "")
-
-                    if [ -n "$original_in_git" ] && ! diff -q "$rel_path" <(echo "$original_in_git") > /dev/null 2>&1; then
-                      # Local file has been modified from what's in git - potential conflict
-                      echo "CONFLICT: $rel_path (local customizations exist)"
-                      echo "$rel_path" >> /tmp/conflict_files.txt
-
-                      # Generate conflict report
-                      {
-                        echo "### \`$rel_path\`"
-                        echo ""
-                        echo "<details>"
-                        echo "<summary>View conflict details</summary>"
-                        echo ""
-                        echo "**Current local version:**"
-                        echo "\`\`\`"
-                        head -100 "$rel_path"
-                        echo "\`\`\`"
-                        echo ""
-                        echo "**Template version:**"
-                        echo "\`\`\`"
-                        head -100 "$template_file"
-                        echo "\`\`\`"
-                        echo ""
-                        echo "**Diff (local → template):**"
-                        echo "\`\`\`diff"
-                        diff -u "$rel_path" "$template_file" | head -50 || true
-                        echo "\`\`\`"
-                        echo "</details>"
-                        echo ""
-                      } >> /tmp/conflict_report.md
-
-                      # Still copy the template version but mark as conflict
-                      cp "$template_file" "$rel_path"
-                    else
-                      # No local customizations, safe to update
-                      cp "$template_file" "$rel_path"
-                    fi
-                  fi
-                else
-                  # New file from template
-                  cp "$template_file" "$rel_path"
-                fi
+                process_file "$rel_path"
               done
             else
-              # Single file
-              parent_dir=$(dirname "$path")
-              [ "$parent_dir" != "." ] && mkdir -p "$parent_dir"
-
-              if [ -f "$path" ]; then
-                # File exists locally - check for conflicts
-                if ! diff -q "$path" "_template/$path" > /dev/null 2>&1; then
-                  # Check if local has customizations
-                  original_in_git=$(git show HEAD:"$path" 2>/dev/null || echo "")
-
-                  if [ -n "$original_in_git" ]; then
-                    # Compare current local with git version to detect customizations
-                    if ! echo "$original_in_git" | diff -q "$path" - > /dev/null 2>&1; then
-                      echo "CONFLICT: $path (local customizations exist)"
-                      echo "$path" >> /tmp/conflict_files.txt
-
-                      {
-                        echo "### \`$path\`"
-                        echo ""
-                        echo "<details>"
-                        echo "<summary>View conflict details</summary>"
-                        echo ""
-                        echo "**Current local version:**"
-                        echo "\`\`\`"
-                        head -100 "$path"
-                        echo "\`\`\`"
-                        echo ""
-                        echo "**Template version:**"
-                        echo "\`\`\`"
-                        head -100 "_template/$path"
-                        echo "\`\`\`"
-                        echo ""
-                        echo "**Diff (local → template):**"
-                        echo "\`\`\`diff"
-                        diff -u "$path" "_template/$path" | head -50 || true
-                        echo "\`\`\`"
-                        echo "</details>"
-                        echo ""
-                      } >> /tmp/conflict_report.md
-                    fi
-                  fi
-
-                  cp "_template/$path" "$path"
-                fi
-              else
-                cp "_template/$path" "$path"
-              fi
+              process_file "$path"
             fi
           done
-
-          # Check for conflicts
-          if [ -f /tmp/conflict_files.txt ] && [ -s /tmp/conflict_files.txt ]; then
-            conflicts=$(cat /tmp/conflict_files.txt | tr '\n' ' ')
-            echo "has_conflicts=true" >> $GITHUB_OUTPUT
-            echo "conflict_files=$conflicts" >> $GITHUB_OUTPUT
-
-            # Store conflict report for PR body
-            conflict_report=$(cat /tmp/conflict_report.md)
-            echo "conflict_report<<EOF" >> $GITHUB_OUTPUT
-            echo "$conflict_report" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "has_conflicts=false" >> $GITHUB_OUTPUT
-          fi
 
           # Clean up template
           rm -rf _template
 
-          # Check for any changes
-          if git diff --quiet; then
+          # Check for conflicts
+          if [ -s /tmp/conflict_files.txt ]; then
+            conflicts=$(cat /tmp/conflict_files.txt | tr '\n' ' ')
+            echo "has_conflicts=true" >> $GITHUB_OUTPUT
+            echo "conflict_files=$conflicts" >> $GITHUB_OUTPUT
+
+            # Store conflict report using unique delimiter to avoid collisions
+            echo "conflict_report<<CONFLICT_REPORT_DELIMITER_7f3d9a" >> $GITHUB_OUTPUT
+            cat /tmp/conflict_report.md >> $GITHUB_OUTPUT
+            echo "CONFLICT_REPORT_DELIMITER_7f3d9a" >> $GITHUB_OUTPUT
+          else
+            echo "has_conflicts=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check for any changes (new files added)
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            changed=$(git diff --name-only | tr '\n' ' ')
-            echo "changed_paths=$changed" >> $GITHUB_OUTPUT
+            changed=$(git diff --name-only; git ls-files --others --exclude-standard)
+            echo "changed_paths=$(echo $changed | tr '\n' ' ')" >> $GITHUB_OUTPUT
           fi
 
       - name: Show diff (dry run)
@@ -240,15 +199,16 @@ jobs:
 
             ${{ steps.sync.outputs.has_conflicts == 'true' && '---
 
-            ## ⚠️ Conflicts Detected
+            ## ⚠️ Manual Merge Required
 
-            The following files have local customizations that may be overwritten by this sync. **Please review carefully before merging.**
+            The following files differ between your repository and the template. **Your local versions have been preserved** - this PR only adds new files.
 
-            To get Claude'\''s help resolving these conflicts:
-            1. Comment `@claude help resolve conflicts` on this PR, or
-            2. Run the "Claude Conflict Resolution" workflow from the Actions tab
+            To resolve, you can:
+            1. Manually merge the changes shown below into your local files
+            2. Comment `@claude help resolve conflicts` to get merge suggestions
+            3. Run the "Conflict Resolution Suggestions" workflow from the Actions tab
 
-            ### Conflicting Files
+            ### Files Requiring Manual Merge
 
             ' || '' }}${{ steps.sync.outputs.conflict_report }}
 
