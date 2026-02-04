@@ -77,20 +77,13 @@ jobs:
 
               if (isPR && triggered) {
                 // Check if commenter has write access to prevent spam on public repos
-                try {
-                  const permission = await github.rest.repos.getCollaboratorPermissionLevel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    username: context.payload.comment.user.login
-                  });
-                  if (!['admin', 'write', 'maintain'].includes(permission.data.permission)) {
-                    console.log(`User ${context.payload.comment.user.login} does not have write permission, skipping`);
-                    core.setOutput('should_run', 'false');
-                    return;
-                  }
-                } catch (e) {
-                  // Fail closed - if we can't verify permissions, don't run
-                  console.log(`Could not verify permissions for ${context.payload.comment.user.login}: ${e.message}`);
+                const permission = await github.rest.repos.getCollaboratorPermissionLevel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  username: context.payload.comment.user.login
+                });
+                if (!['admin', 'write', 'maintain'].includes(permission.data.permission)) {
+                  console.log(`User ${context.payload.comment.user.login} does not have write permission, skipping`);
                   core.setOutput('should_run', 'false');
                   return;
                 }
