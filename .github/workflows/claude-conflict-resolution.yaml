@@ -168,7 +168,18 @@ jobs:
 
             // Extract conflicting files
             const fileMatches = prBody.match(/### `([^`]+)`/g) || [];
-            const conflictFiles = fileMatches.map(m => m.replace(/### `|`/g, ''));
+            const rawFiles = fileMatches.map(m => m.replace(/### `|`/g, ''));
+
+            // Validate paths to prevent path traversal attacks
+            // Reject absolute paths and paths containing ..
+            const conflictFiles = rawFiles.filter(file => {
+              const normalized = path.normalize(file);
+              if (path.isAbsolute(normalized) || normalized.startsWith('..') || normalized.includes('/..') || normalized.includes('\\..')) {
+                console.log(`Skipping invalid path: ${file}`);
+                return false;
+              }
+              return true;
+            });
 
             if (conflictFiles.length === 0) {
               core.setOutput('has_conflicts', 'false');
