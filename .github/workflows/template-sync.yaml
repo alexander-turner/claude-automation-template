@@ -134,11 +134,12 @@ jobs:
             fi
 
             # Handle directories by processing files individually
+            # Note: Using process substitution to avoid subshell variable scope issues
             if [ -d "_template/$path" ]; then
-              find "_template/$path" -type f | while read template_file; do
+              while IFS= read -r template_file; do
                 rel_path="${template_file#_template/}"
                 process_file "$rel_path"
-              done
+              done < <(find "_template/$path" -type f)
             else
               process_file "$path"
             fi
@@ -149,7 +150,7 @@ jobs:
 
           # Check for conflicts
           if [ -s /tmp/conflict_files.txt ]; then
-            conflicts=$(cat /tmp/conflict_files.txt | tr '\n' ' ')
+            conflicts=$(tr '\n' ' ' < /tmp/conflict_files.txt)
             echo "has_conflicts=true" >> $GITHUB_OUTPUT
             echo "conflict_files=$conflicts" >> $GITHUB_OUTPUT
 
@@ -166,8 +167,11 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            changed=$(git diff --name-only; git ls-files --others --exclude-standard)
-            echo "changed_paths=$(echo $changed | tr '\n' ' ')" >> $GITHUB_OUTPUT
+            # Combine changed and new files, convert newlines to spaces
+            {
+              git diff --name-only
+              git ls-files --others --exclude-standard
+            } | tr '\n' ' ' | { read -r changed_paths; echo "changed_paths=$changed_paths" >> $GITHUB_OUTPUT; }
           fi
 
       - name: Show diff (dry run)
