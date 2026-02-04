@@ -46,6 +46,18 @@ This includes:
 
 Do NOT skip the self-critique step. It catches bugs before they reach review.
 
+## Post-PR Reflection
+
+After completing a pull request, reflect on the conversation and look for generalizable mistakes or patterns that could have been prevented with better guidance in this file.
+
+If you identify improvements:
+
+1. Note specific lessons learned (e.g., "Always check X before Y", "Remember to handle edge case Z")
+2. Create a separate PR to the template repository (`alexander-turner/claude-automation-template`) adding these insights to `CLAUDE.md`
+3. Keep additions concise and actionable
+
+This continuous improvement loop helps prevent recurring issues across future sessions.
+
 ## Project Structure
 
 ```
