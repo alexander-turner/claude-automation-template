@@ -1,26 +1,35 @@
 name: Test CI Feedback
 
 # Test workflow to verify the CI failure notification system works.
-# This workflow intentionally fails to trigger @claude notification.
+# Manually triggered to avoid failing on real PRs.
+# To test: Run this workflow manually, then check if comment-on-failed-checks posts @claude notification.
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/test-ci-feedback.yaml"
-      - "src/**"
-      - "tests/**"
+  workflow_dispatch:
+    inputs:
+      should_fail:
+        description: "Should the workflow fail? (for testing notifications)"
+        required: true
+        default: "true"
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
-  test-failure:
+  test-ci-feedback:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Intentional failure for CI feedback testing
+      - name: CI feedback test
         run: |
-          echo "This workflow intentionally fails to test CI feedback notifications."
-          echo "The comment-on-failed-checks workflow should notify @claude about this failure."
-          exit 1
+          echo "Testing CI feedback notification system."
+          echo "Should fail: ${{ inputs.should_fail }}"
+          if [[ "${{ inputs.should_fail }}" == "true" ]]; then
+            echo "Intentionally failing to test @claude notification..."
+            exit 1
+          else
+            echo "Success path - no notification expected."
+            exit 0
+          fi

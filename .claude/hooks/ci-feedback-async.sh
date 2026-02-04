@@ -1,9 +1,9 @@
 #!/bin/bash
-# Async CI feedback hook: Runs tests in background after file edits
+# Async CI feedback hook: Runs checks in background after file edits
 # Results are delivered on the next conversation turn
 # Since this is async, it cannot block - only provide feedback
 
-set -euo pipefail
+set -uo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$PROJECT_DIR"
@@ -19,7 +19,18 @@ if [[ -z "$FILE_PATH" ]]; then
     exit 0
 fi
 
-# Determine what checks to run based on file type
+# Helper: Check if a script is configured (not a placeholder)
+script_configured() {
+    local script_name="$1"
+    if ! jq -e ".scripts.${script_name}" package.json >/dev/null 2>&1; then
+        return 1
+    fi
+    local script_content
+    script_content=$(jq -r ".scripts.${script_name}" package.json)
+    [[ "$script_content" != "null" && "$script_content" != *"ERROR: Configure"* ]]
+}
+
+# Collect feedback
 FEEDBACK=""
 
 case "$FILE_PATH" in
@@ -27,27 +38,24 @@ case "$FILE_PATH" in
         # TypeScript/JavaScript - run relevant checks
         if [[ -f "package.json" ]]; then
             # Run typecheck if available
-            if jq -e '.scripts.check' package.json >/dev/null 2>&1; then
-                CHECK_SCRIPT=$(jq -r '.scripts.check' package.json)
-                if [[ "$CHECK_SCRIPT" != "null" && "$CHECK_SCRIPT" != *"configure"* ]]; then
-                    CHECK_OUTPUT=$(pnpm check 2>&1) || true
-                    if echo "$CHECK_OUTPUT" | grep -qi "error"; then
-                        ERRORS=$(echo "$CHECK_OUTPUT" | grep -i "error" | head -10)
-                        FEEDBACK="${FEEDBACK}Type errors detected:\n${ERRORS}\n\n"
+            if script_configured "check"; then
+                CHECK_OUTPUT=$(pnpm check 2>&1) || {
+                    # Only capture actual errors, not "0 errors"
+                    ERRORS=$(echo "$CHECK_OUTPUT" | grep -iE "(error TS|: error)" | head -10)
+                    if [[ -n "$ERRORS" ]]; then
+                        FEEDBACK="${FEEDBACK}Type errors:\n${ERRORS}\n\n"
                     fi
-                fi
+                }
             fi
 
             # Run lint if available
-            if jq -e '.scripts.lint' package.json >/dev/null 2>&1; then
-                LINT_SCRIPT=$(jq -r '.scripts.lint' package.json)
-                if [[ "$LINT_SCRIPT" != "null" && "$LINT_SCRIPT" != *"configure"* ]]; then
-                    LINT_OUTPUT=$(pnpm lint 2>&1) || true
-                    if echo "$LINT_OUTPUT" | grep -qi "error"; then
-                        ERRORS=$(echo "$LINT_OUTPUT" | grep -i "error" | head -10)
-                        FEEDBACK="${FEEDBACK}Lint errors detected:\n${ERRORS}\n\n"
+            if script_configured "lint"; then
+                LINT_OUTPUT=$(pnpm lint 2>&1) || {
+                    ERRORS=$(echo "$LINT_OUTPUT" | grep -iE "^\s*[0-9]+:[0-9]+\s+error|error:" | head -10)
+                    if [[ -n "$ERRORS" ]]; then
+                        FEEDBACK="${FEEDBACK}Lint errors:\n${ERRORS}\n\n"
                     fi
-                fi
+                }
             fi
         fi
         ;;
@@ -56,6 +64,7 @@ case "$FILE_PATH" in
         # Python - run ruff if available
         if command -v ruff &>/dev/null; then
             RUFF_OUTPUT=$(ruff check "$FILE_PATH" 2>&1) || true
+            # Ruff outputs nothing on success
             if [[ -n "$RUFF_OUTPUT" ]]; then
                 FEEDBACK="${FEEDBACK}Ruff issues in ${FILE_PATH}:\n${RUFF_OUTPUT}\n\n"
             fi
@@ -73,15 +82,9 @@ case "$FILE_PATH" in
         ;;
 esac
 
-# Return feedback if any issues found
+# Return feedback if any issues found, using jq for proper JSON
 if [[ -n "$FEEDBACK" ]]; then
-    # Escape for JSON
-    ESCAPED_FEEDBACK=$(echo -e "$FEEDBACK" | jq -Rs .)
-    cat <<EOF
-{
-  "additionalContext": ${ESCAPED_FEEDBACK}
-}
-EOF
+    jq -n --arg feedback "$FEEDBACK" '{ additionalContext: $feedback }'
 fi
 
 exit 0
