@@ -5,7 +5,7 @@
 set -uo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-cd "$PROJECT_DIR"
+cd "$PROJECT_DIR" || exit 1
 
 # Track failures with actual error output
 FAILURES=""
@@ -55,19 +55,25 @@ fi
 
 # Check for Python project
 if [[ -f "pyproject.toml" ]] || [[ -f "uv.lock" ]]; then
+    # Use uv run if uv.lock exists, otherwise run directly
+    RUN_PREFIX=""
+    if [[ -f "uv.lock" ]] && command -v uv &>/dev/null; then
+        RUN_PREFIX="uv run "
+    fi
+
     # Run ruff if available
-    if command -v ruff &>/dev/null; then
+    if command -v ruff &>/dev/null || [[ -n "$RUN_PREFIX" ]]; then
         echo "Running ruff..." >&2
-        RUFF_OUTPUT=$(ruff check . 2>&1) || {
+        RUFF_OUTPUT=$(${RUN_PREFIX}ruff check . 2>&1) || {
             FAILURES="${FAILURES}Ruff linting failed. "
             ERROR_DETAILS="${ERROR_DETAILS}RUFF ERRORS:\n$(echo "$RUFF_OUTPUT" | head -15)\n\n"
         }
     fi
 
-    # Run pytest if available
-    if command -v pytest &>/dev/null && [[ -d "tests" ]]; then
+    # Run pytest if tests directory exists
+    if [[ -d "tests" ]] && { command -v pytest &>/dev/null || [[ -n "$RUN_PREFIX" ]]; }; then
         echo "Running pytest..." >&2
-        PYTEST_OUTPUT=$(pytest 2>&1) || {
+        PYTEST_OUTPUT=$(${RUN_PREFIX}pytest 2>&1) || {
             FAILURES="${FAILURES}Pytest failed. "
             ERROR_DETAILS="${ERROR_DETAILS}PYTEST ERRORS:\n$(echo "$PYTEST_OUTPUT" | grep -iE "(FAILED|ERROR|assert)" | head -15)\n\n"
         }
