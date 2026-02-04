@@ -158,8 +158,13 @@ jobs:
             echo "conflict_report<<CONFLICT_REPORT_DELIMITER_7f3d9a" >> $GITHUB_OUTPUT
             cat /tmp/conflict_report.md >> $GITHUB_OUTPUT
             echo "CONFLICT_REPORT_DELIMITER_7f3d9a" >> $GITHUB_OUTPUT
+
+            # Create marker file to ensure PR is created even if only conflicts exist
+            echo "Template updates available for: $conflicts" > .template-sync-conflicts
           else
             echo "has_conflicts=false" >> $GITHUB_OUTPUT
+            # Remove marker if no conflicts
+            rm -f .template-sync-conflicts
           fi
 
           # Check for any changes (new files added)
@@ -187,7 +192,7 @@ jobs:
           fi
 
       - name: Create Pull Request
-        if: inputs.dry-run != 'true' && steps.sync.outputs.has_changes == 'true'
+        if: inputs.dry-run != 'true' && (steps.sync.outputs.has_changes == 'true' || steps.sync.outputs.has_conflicts == 'true')
         id: create-pr
         uses: peter-evans/create-pull-request@v6
         with:
