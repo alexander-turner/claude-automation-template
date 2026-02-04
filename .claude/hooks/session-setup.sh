@@ -55,6 +55,9 @@ webi_install_if_missing shfmt
 # Install GitHub CLI for PR workflows
 webi_install_if_missing gh
 
+# Install jq for JSON processing (used by hooks)
+webi_install_if_missing jq
+
 # Install shellcheck for shell script linting (requires root)
 if ! command -v shellcheck &>/dev/null && is_root; then
   if ! { apt-get update -qq && apt-get install -y -qq shellcheck; } 2>/dev/null; then
