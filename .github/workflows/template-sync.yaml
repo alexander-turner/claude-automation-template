@@ -22,7 +22,7 @@ on:
 env:
   TEMPLATE_REPO: "alexander-turner/claude-automation-template"
   # Only sync core automation files that don't need customization
-  SYNC_PATHS: ".claude .hooks .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml .github/workflows/claude-conflict-resolution.yaml"
+  SYNC_PATHS: ".claude .hooks .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml"
   # These are excluded because they require project-specific customization
   # (comment-on-failed-checks needs workflow names, lint/test need project scripts)
   EXCLUDE_PATHS: ""
@@ -207,11 +207,6 @@ jobs:
 
             The following files differ between your repository and the template. **Your local versions have been preserved** - this PR only adds new files.
 
-            To resolve, you can:
-            1. Manually merge the changes shown below into your local files
-            2. Comment `@claude help resolve conflicts` to get merge suggestions
-            3. Run the "Conflict Resolution Suggestions" workflow from the Actions tab
-
             ### Files Requiring Manual Merge
 
             ' || '' }}${{ steps.sync.outputs.conflict_report }}
@@ -221,3 +216,16 @@ jobs:
           branch: template-sync
           delete-branch: true
           labels: ${{ steps.sync.outputs.has_conflicts == 'true' && 'template-sync,needs-conflict-resolution' || 'template-sync' }}
+
+      - name: Ask Claude for merge suggestions
+        if: inputs.dry-run != 'true' && steps.sync.outputs.has_conflicts == 'true' && steps.create-pr.outputs.pull-request-number
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
+          prompt: |
+            This template sync PR has conflicts - files that differ between the local repo and template.
+            The local versions have been preserved. Please suggest how to merge each conflicting file,
+            keeping project-specific customizations while adopting template improvements.
+
+            Be concise. For each file, suggest what to keep from local vs adopt from template.
