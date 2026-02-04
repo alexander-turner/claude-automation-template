@@ -39,10 +39,19 @@ has_script check && run_check "typecheck" "pnpm check"
 # Python checks (use uv run if uv.lock exists)
 if [[ -f pyproject.toml ]] || [[ -f uv.lock ]]; then
     PREFIX=""
-    [[ -f uv.lock ]] && command -v uv &>/dev/null && PREFIX="uv run "
+    if [[ -f uv.lock ]] && command -v uv &>/dev/null; then
+        PREFIX="uv run "
+    fi
 
-    command -v ruff &>/dev/null || [[ -n "$PREFIX" ]] && run_check "ruff" "${PREFIX}ruff check ."
-    [[ -d tests ]] && { command -v pytest &>/dev/null || [[ -n "$PREFIX" ]]; } && run_check "pytest" "${PREFIX}pytest"
+    # Run ruff if available
+    if command -v ruff &>/dev/null || [[ -n "$PREFIX" ]]; then
+        run_check "ruff" "${PREFIX}ruff check ."
+    fi
+
+    # Run pytest if tests directory exists
+    if [[ -d tests ]] && { command -v pytest &>/dev/null || [[ -n "$PREFIX" ]]; }; then
+        run_check "pytest" "${PREFIX}pytest"
+    fi
 fi
 
 # Return result
