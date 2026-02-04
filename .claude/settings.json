@@ -12,29 +12,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ci-feedback.sh",
-            "timeout": 30
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ci-feedback-async.sh",
-            "timeout": 300,
-            "async": true
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
