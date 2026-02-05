@@ -102,11 +102,7 @@ This template uses the official [claude-code-action](https://github.com/anthropi
 
 ### Setup Required
 
-Add your Anthropic API key as a repository secret:
-
-1. Go to Settings → Secrets and variables → Actions
-2. Create a new secret named `ANTHROPIC_API_KEY`
-3. Paste your API key from [console.anthropic.com](https://console.anthropic.com)
+To let Claude start fixing your PRs after your CI fails, you need to [install the Claude GitHub app](https://github.com/apps/claude).
 
 The automation will then:
 
@@ -121,4 +117,3 @@ After cloning, update the following:
 - [ ] This file (`CLAUDE.md`) - Add project-specific details
 - [ ] `package.json` - Configure dev/build/test/lint scripts
 - [ ] `.github/workflows/comment-on-failed-checks.yaml` - Add your workflow names
-- [ ] Add `ANTHROPIC_API_KEY` secret for Claude auto-fix
