@@ -10,6 +10,7 @@ on:
       - "Node tests"
       - "Lint"
       - "Format check"
+      - "Always Fail Test"
       # - "Python tests"
       # - "Type check"
     types:

@@ -1,0 +1,19 @@
+name: Always Fail Test
+
+# Test workflow that always fails to verify the comment-on-failed-checks workflow
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  always-fail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail intentionally
+        run: |
+          echo "This workflow is designed to fail for testing purposes."
+          echo "It verifies that the comment-on-failed-checks workflow works correctly."
+          exit 1
