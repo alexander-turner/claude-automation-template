@@ -93,6 +93,28 @@ tests/            # Test files (create as needed)
 
 - Use pnpm (not npm) for all package operations
 
+## Claude Auto-Fix (CI Automation)
+
+This template includes automatic CI failure fixing via Claude API:
+
+1. **comment-on-failed-checks.yaml** - Detects CI failures on `claude/` branches and comments on the PR
+2. **claude-fix-on-failure.yaml** - Triggers when failure comments are posted, uses Claude API to analyze and fix issues
+
+### Setup Required
+
+Add your Anthropic API key as a repository secret:
+
+1. Go to Settings → Secrets and variables → Actions
+2. Create a new secret named `ANTHROPIC_API_KEY`
+3. Paste your API key from [console.anthropic.com](https://console.anthropic.com)
+
+The automation will then automatically:
+
+- Detect CI failures on PRs from `claude/` branches
+- Call Claude API to analyze the failure logs
+- Apply fixes and push a commit
+- Comment on the PR with the analysis
+
 ## Customization Checklist
 
 After cloning, update the following:
@@ -100,3 +122,4 @@ After cloning, update the following:
 - [ ] This file (`CLAUDE.md`) - Add project-specific details
 - [ ] `package.json` - Configure dev/build/test/lint scripts
 - [ ] `.github/workflows/comment-on-failed-checks.yaml` - Add your workflow names
+- [ ] Add `ANTHROPIC_API_KEY` secret for Claude auto-fix
