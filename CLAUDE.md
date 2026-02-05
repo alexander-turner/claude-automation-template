@@ -94,6 +94,23 @@ tests/            # Test files (create as needed)
 
 - Use pnpm (not npm) for all package operations
 
+## Claude GitHub Integration
+
+This template uses the official [claude-code-action](https://github.com/anthropics/claude-code-action) for GitHub automation:
+
+1. **claude.yaml** - Responds to `@claude` mentions in issues, PRs, and comments
+2. **comment-on-failed-checks.yaml** - Detects CI failures on `claude/` branches and tags `@claude` for auto-fix
+
+### Setup Required
+
+To let Claude start fixing your PRs after your CI fails, you need to [install the Claude GitHub app](https://github.com/apps/claude).
+
+The automation will then:
+
+- Respond to `@claude` mentions in issues and PRs
+- Automatically fix CI failures on `claude/` branches
+- Review code and answer questions about the codebase
+
 ## Customization Checklist
 
 After cloning, update the following:
