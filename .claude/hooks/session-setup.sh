@@ -12,26 +12,26 @@ PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 
 warn() { echo "Warning: $1" >&2; }
 die() {
-  echo "ERROR: $1" >&2
-  exit 1
+	echo "ERROR: $1" >&2
+	exit 1
 }
 is_root() { [ "$(id -u)" = "0" ]; }
 
 # Install a command via pip if missing
 pip_install_if_missing() {
-  local cmd="$1" pkg="${2:-$1}"
-  if ! command -v "$cmd" &>/dev/null; then
-    pip3 install --quiet "$pkg" || warn "Failed to install $pkg"
-  fi
+	local cmd="$1" pkg="${2:-$1}"
+	if ! command -v "$cmd" &>/dev/null; then
+		pip3 install --quiet "$pkg" || warn "Failed to install $pkg"
+	fi
 }
 
 # Install a command via webi if missing
 webi_install_if_missing() {
-  local cmd="$1"
-  if ! command -v "$cmd" &>/dev/null; then
-    echo "Installing $cmd..."
-    curl -sS "https://webi.sh/$cmd" | sh >/dev/null 2>&1 || warn "Failed to install $cmd"
-  fi
+	local cmd="$1"
+	if ! command -v "$cmd" &>/dev/null; then
+		echo "Installing $cmd..."
+		curl -sS "https://webi.sh/$cmd" | sh >/dev/null 2>&1 || warn "Failed to install $cmd"
+	fi
 }
 
 #######################################
@@ -40,7 +40,7 @@ webi_install_if_missing() {
 
 export PATH="$HOME/.local/bin:$PATH"
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
+	echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
 fi
 
 #######################################
@@ -60,9 +60,9 @@ webi_install_if_missing jq
 
 # Install shellcheck for shell script linting (requires root)
 if ! command -v shellcheck &>/dev/null && is_root; then
-  if ! { apt-get update -qq && apt-get install -y -qq shellcheck; } 2>/dev/null; then
-    warn "Failed to install shellcheck"
-  fi
+	if ! { apt-get update -qq && apt-get install -y -qq shellcheck; } 2>/dev/null; then
+		warn "Failed to install shellcheck"
+	fi
 fi
 
 #######################################
@@ -80,22 +80,44 @@ command -v gh &>/dev/null || die "gh CLI not found"
 [ -n "${GH_TOKEN:-}" ] || die "GH_TOKEN is not set — GitHub CLI requires authentication"
 
 #######################################
+# GitHub repo detection for proxy environments
+#######################################
+
+# In Claude Code web sessions, git remotes use a local proxy URL like:
+#   http://local_proxy@127.0.0.1:18393/git/owner/repo
+# The gh CLI can't detect the GitHub repo from this, so we extract
+# owner/repo and export GH_REPO to make all gh commands work.
+
+if [ -z "${GH_REPO:-}" ]; then
+	remote_url=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null || true)
+	if [[ "$remote_url" =~ /git/([^/]+/[^/]+)$ ]]; then
+		GH_REPO="${BASH_REMATCH[1]}"
+		GH_REPO="${GH_REPO%.git}"
+		export GH_REPO
+		echo "Detected GitHub repo from proxy remote: $GH_REPO"
+		if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+			echo "export GH_REPO=\"$GH_REPO\"" >>"$CLAUDE_ENV_FILE"
+		fi
+	fi
+fi
+
+#######################################
 # Project dependencies
 #######################################
 
 # Install Node dependencies if package.json exists and node_modules is missing
 if [ -f "$PROJECT_DIR/package.json" ] && [ ! -d "$PROJECT_DIR/node_modules" ]; then
-  echo "Installing Node dependencies..."
-  if command -v pnpm &>/dev/null; then
-    pnpm install --silent || warn "Failed to install Node dependencies"
-  elif command -v npm &>/dev/null; then
-    npm install --silent || warn "Failed to install Node dependencies"
-  fi
+	echo "Installing Node dependencies..."
+	if command -v pnpm &>/dev/null; then
+		pnpm install --silent || warn "Failed to install Node dependencies"
+	elif command -v npm &>/dev/null; then
+		npm install --silent || warn "Failed to install Node dependencies"
+	fi
 fi
 
 # Install Python dependencies if uv.lock exists
 if [ -f "$PROJECT_DIR/uv.lock" ] && command -v uv &>/dev/null; then
-  uv sync --quiet 2>/dev/null || warn "Failed to sync Python dependencies"
+	uv sync --quiet 2>/dev/null || warn "Failed to sync Python dependencies"
 fi
 
 echo "Session setup complete"
