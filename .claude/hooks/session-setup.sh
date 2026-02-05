@@ -76,10 +76,8 @@ git config core.hooksPath .hooks
 # GitHub CLI auth
 #######################################
 
-if [ -n "${GH_TOKEN:-}" ] && command -v gh &>/dev/null; then
-  echo "Configuring GitHub authentication..."
-  echo "$GH_TOKEN" | gh auth login --with-token 2>&1 || warn "Failed to authenticate with GitHub"
-fi
+command -v gh &>/dev/null || die "gh CLI not found"
+[ -n "${GH_TOKEN:-}" ] || die "GH_TOKEN is not set — GitHub CLI requires authentication"
 
 #######################################
 # Project dependencies
