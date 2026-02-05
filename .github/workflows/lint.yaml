@@ -9,7 +9,6 @@ on:
       - "**/*.js"
       - "**/*.jsx"
       - "package.json"
-      - "pnpm-lock.yaml"
       - ".github/workflows/lint.yaml"
   pull_request:
     paths:
@@ -18,7 +17,6 @@ on:
       - "**/*.js"
       - "**/*.jsx"
       - "package.json"
-      - "pnpm-lock.yaml"
       - ".github/workflows/lint.yaml"
 
 permissions:

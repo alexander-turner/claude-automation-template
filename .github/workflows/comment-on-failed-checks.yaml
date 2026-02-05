@@ -9,6 +9,7 @@ on:
       # Add your workflow names here
       - "Node tests"
       - "Lint"
+      - "Format check"
       # - "Python tests"
       # - "Type check"
     types:

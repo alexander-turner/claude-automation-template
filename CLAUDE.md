@@ -42,9 +42,10 @@ This includes:
 1. **Self-critique via subagent** - Launch a general-purpose Task agent to review the diff for bugs, security issues, and bloat
 2. **Address critique feedback** - Fix legitimate issues before proceeding
 3. **Run validation** - Ensure tests/lint/typecheck pass
-4. **Then create the PR** - With proper summary and test plan
+4. **Create the PR** - With proper summary and test plan
+5. **Wait for CI checks** - Use `gh pr checks --watch` and fix any failures
 
-Do NOT skip the self-critique step. It catches bugs before they reach review.
+Do NOT skip the self-critique step or the CI check waiting. PRs should not be considered ready until all checks are green.
 
 ## Post-PR Reflection
 
