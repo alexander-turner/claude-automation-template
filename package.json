@@ -12,7 +12,8 @@
     "test": "echo 'ERROR: Configure test script in package.json' && exit 1",
     "lint": "echo 'ERROR: Configure lint script in package.json' && exit 1",
     "check": "echo 'ERROR: Configure check script in package.json' && exit 1",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "lint-staged": {
     "*.{css,scss}": [
