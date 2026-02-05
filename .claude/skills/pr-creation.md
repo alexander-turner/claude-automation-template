@@ -1,34 +1,52 @@
 ---
 # prettier-ignore
-description: Guide for creating high-quality pull requests with mandatory self-critique
+description: >
+  Creates high-quality pull requests with mandatory self-critique before submission.
+  Activate this skill whenever you are asked to create, open, submit, or push a pull request.
+  Also activate when the user says "make a PR", "open a PR", "submit this for review",
+  "push and create a PR", "I'm done, create the PR", or any variation of requesting a pull request.
+  Always activate before running `gh pr create`.
 ---
 
 # Pull Request Creation Skill
 
 **IMPORTANT: Always follow this skill before creating any PR.** Do not skip steps, especially the self-critique.
 
-This skill guides Claude through creating high-quality pull requests with mandatory self-critique before submission.
-
 ## When to Use
 
-Use this skill when:
+Activate this skill when the user says any of the following (or similar):
 
-- Creating a pull request for completed work
-- The user asks to "create a PR", "open a pull request", or similar
+- "Create a PR" / "Create a pull request"
+- "Open a PR" / "Open a pull request"
+- "Make a PR for this"
+- "Submit this for review"
+- "Push and create a PR"
+- "I'm done, create the PR"
+- "Can you PR this?"
+- "Send this up for review"
+
+Also activate when:
+
+- You have completed a task and the user asks you to submit it
+- CLAUDE.md or task instructions say to create a PR when done
+
+Do **NOT** use this skill for:
+
+- Reviewing an existing PR (use `gh pr view` or `gh pr diff` instead)
+- Merging a PR (`gh pr merge`)
+- Updating a PR description only (just run `gh pr edit`)
 
 ## Prerequisites
 
 - GitHub CLI (`gh`) must be authenticated
-- All changes must be committed to a feature branch
+- All changes must be committed to a feature branch (not `main`/`master`)
 
 ## Workflow
 
 ### Step 1: Gather Context
 
-Before creating the PR, gather information about the changes:
-
 1. Identify the base branch (typically `main` or `master`)
-2. Run `git diff <base-branch>...HEAD` to see all changes that will be in the PR
+2. Run `git diff <base-branch>...HEAD` to see all changes
 3. Run `git log <base-branch>..HEAD --oneline` to see all commits
 4. Review the changed files to understand the scope
 
@@ -38,141 +56,83 @@ Before creating the PR, gather information about the changes:
 
 - `subagent_type`: "general-purpose"
 - `description`: "Critique code changes"
-- `prompt`: Include the diff output and use the critique prompt below
-
-**Critique Prompt:**
-
-> Review the code changes for this PR and provide a critical assessment. Look for:
->
-> **Problems:**
->
-> - Logic errors, bugs, or unhandled edge cases
-> - Security vulnerabilities (OWASP top 10)
-> - Race conditions, memory leaks, or resource management issues
->
-> **Best Practices:**
->
-> - Does the code follow existing patterns in the codebase?
-> - Are there unnecessary abstractions or over-engineering?
-> - Is error handling appropriate (fail loudly for critical issues)?
-> - Is there duplicated logic that should use shared helpers?
->
-> **Bloat Detection:**
->
-> - Unnecessary code, comments, or documentation
-> - Features beyond what was requested
-> - Backwards-compatibility hacks that can just be deleted
-> - Premature abstractions or hypothetical future requirements
->
-> **Testing:**
->
-> - Are tests adequate for the changes?
-> - Are tests focused and non-duplicative?
->
-> Provide specific, actionable feedback with file/line references where applicable.
+- `prompt`: Include the full diff output and the critique prompt from `resources/critique-prompt.md`
 
 ### Step 3: Address Critique
 
-Review the critique and fix legitimate issues:
-
-1. For each issue, determine if it's valid
+1. For each issue raised, determine if it's valid
 2. Make necessary fixes and commit them
 3. If you fixed more than 3 issues or made structural changes, re-run the critique
 
 ### Step 4: Run Validation
 
-Ensure quality checks pass before creating the PR.
-
-**TypeScript/JavaScript changes:**
-
-```bash
-pnpm check        # Type checking (if applicable)
-pnpm test         # Run tests
-pnpm lint         # Run linter
-```
-
-**Python changes:**
-
-```bash
-mypy <changed_files>
-pylint <changed_files>
-ruff check <changed_files>
-pytest <test_files>
-```
-
-Customize these commands based on your project's tooling.
+Run the project's test/lint/typecheck commands. See `resources/pr-templates.md` for common commands. Fix any failures before proceeding.
 
 ### Step 5: Push and Create the Pull Request
 
 1. Push the branch: `git push -u origin HEAD`
-
-2. Create the PR with `gh pr create`:
-
-```bash
-gh pr create --title "<type>: <description>" --body "$(cat <<'EOF'
-## Summary
-<1-3 bullet points describing what changed and why>
-
-## Changes
-<List of specific changes made>
-
-## Testing
-<How the changes were tested>
-
-https://claude.ai/code/session_...
-EOF
-)"
-```
-
-**Title format:** Use imperative mood with optional type prefix (`fix:`, `feat:`, `refactor:`, `docs:`, `test:`)
-
-**Body guidelines:**
-
-- Focus the summary on the "why"
-- List concrete changes
-- Note any breaking changes
-- Include the Claude session URL at the end
+2. Create the PR using `gh pr create`. See `resources/pr-templates.md` for the template and formatting guidelines.
 
 ### Step 6: Wait for CI Checks
 
-After creating the PR, wait for all CI checks to complete:
-
-1. Use `gh pr checks <pr-number> --watch` to monitor check status
-2. If any checks fail, investigate the failure and fix the issues
-3. Push fixes and wait for checks again
-4. Only proceed once all checks pass
-
-**Important:** Do not consider the PR ready until all CI checks are green.
+1. Run `gh pr checks <pr-number> --watch` to monitor
+2. If any checks fail, investigate and fix the issues
+3. Push fixes and wait again
+4. Only proceed once all checks are green
 
 ### Step 7: Report Result
 
-Provide the PR URL and title to the user, confirming that all CI checks have passed.
+Provide the PR URL and confirm all CI checks have passed.
 
-## Updating the PR Description
+## Examples
 
-**After each subsequent commit**, update the PR description to reflect the new changes:
+### Example 1: Simple Bug Fix
 
-```bash
-gh pr edit --body "$(cat <<'EOF'
-## Summary
-<Updated summary reflecting all changes>
+**User says:** "I'm done fixing the login bug, create a PR"
 
-## Changes
-<Updated list of all changes, including new commits>
+**Claude's actions:**
 
-## Testing
-<Updated testing information>
+1. Runs `git diff main...HEAD` — sees changes in `src/auth/login.ts` and `tests/auth/login.test.ts`
+2. Runs `git log main..HEAD --oneline` — sees 2 commits
+3. Launches critique sub-agent with the diff
+4. Critique returns: "Looks good, minor suggestion to add null check on line 42"
+5. Fixes the null check, commits: `fix: add null check for empty session token`
+6. Runs `pnpm check && pnpm test && pnpm lint` — all pass
+7. Pushes and creates PR:
+   ```
+   gh pr create --title "fix: handle null session token in login flow" --body "..."
+   ```
+8. Watches CI with `gh pr checks 47 --watch` — all green
+9. Reports: "PR #47 created and all CI checks pass: https://github.com/org/repo/pull/47"
 
-https://claude.ai/code/session_...
-EOF
-)"
-```
+### Example 2: Multi-Commit Feature
 
-This keeps reviewers informed of the PR's current state without requiring them to parse individual commits.
+**User says:** "Submit this for review"
+
+**Claude's actions:**
+
+1. Runs `git diff main...HEAD` — sees changes across 8 files including new components, tests, and API routes
+2. Runs `git log main..HEAD --oneline` — sees 5 commits
+3. Launches critique sub-agent with the full diff
+4. Critique returns 4 issues: unused import, missing error boundary, test not covering edge case, over-engineered helper
+5. Fixes all 4 issues across 2 additional commits
+6. Re-runs critique (>3 fixes) — clean this time
+7. Runs validation — all pass
+8. Pushes and creates PR with detailed body summarizing the feature
+9. Watches CI — one check fails (lint warning on new file)
+10. Fixes lint issue, pushes, watches again — all green
+11. Reports success with PR URL
+
+### Example 3: When Input Is Unclear
+
+**User says:** "Push this up"
+
+**Claude asks:** "I see you have changes on branch `feat/user-dashboard`. Would you like me to create a pull request against `main`, or just push the branch without creating a PR?"
 
 ## Error Handling
 
-- **Critique finds issues**: Fix them before proceeding
+- **Critique finds issues**: Fix them before proceeding — do not skip
 - **Tests fail**: Fix the tests, don't skip them
-- **gh not authenticated**: User should run `gh auth login`
+- **`gh` not authenticated**: Tell user to run `gh auth login` or set `GH_TOKEN`
 - **Push fails**: Check branch permissions and remote configuration
+- **No changes to PR**: Confirm with the user that work is committed
