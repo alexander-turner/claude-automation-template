@@ -32,11 +32,3 @@ Use this prompt when launching the critique sub-agent in Step 3.
 > - Are tests focused and non-duplicative?
 >
 > Provide specific, actionable feedback with file/line references where applicable.
-
-## Sub-Agent Configuration
-
-```
-subagent_type: "general-purpose"
-description: "Critique code changes"
-prompt: <include the diff output> + <the prompt above>
-```
