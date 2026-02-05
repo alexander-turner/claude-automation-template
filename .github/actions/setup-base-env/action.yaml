@@ -39,7 +39,7 @@ runs:
           ${{ runner.os }}-pnpm-store-
 
     - name: Install Node Dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install
       shell: bash
 
     - name: Set up uv

@@ -36,4 +36,3 @@ __pycache__/
 *.pyc
 .venv/
 .uv/
-pnpm-lock.yaml

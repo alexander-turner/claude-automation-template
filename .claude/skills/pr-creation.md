@@ -1,3 +1,8 @@
+---
+# prettier-ignore
+description: Guide for creating high-quality pull requests with mandatory self-critique
+---
+
 # Pull Request Creation Skill
 
 **IMPORTANT: Always follow this skill before creating any PR.** Do not skip steps, especially the self-critique.
