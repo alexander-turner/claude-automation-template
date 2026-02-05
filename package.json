@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Project with Claude Code automation",
   "type": "module",
+  "packageManager": "pnpm@10.28.1",
   "scripts": {
     "postinstall": "git config core.hooksPath .hooks || true",
     "dev": "echo 'ERROR: Configure dev script in package.json' && exit 1",
