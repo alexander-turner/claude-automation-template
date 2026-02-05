@@ -86,6 +86,7 @@ tests/            # Test files (create as needed)
 
 - Write focused, non-duplicative tests
 - Parametrize tests for compactness while achieving high coverage
+- Prefer exact equality assertions over partial/contains checks—make tests as strict as possible
 
 ### Dependencies
 
