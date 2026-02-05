@@ -29,6 +29,9 @@
     "*.md": [
       "prettier --write"
     ],
+    ".claude/skills/*.md": [
+      ".hooks/lint-skills.sh"
+    ],
     "{*.sh,.hooks/*}": [
       "shfmt -i 2 -w"
     ],
