@@ -34,12 +34,12 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ${{ env.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/package.json') }}
         restore-keys: |
           ${{ runner.os }}-pnpm-store-
 
     - name: Install Node Dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install
       shell: bash
 
     - name: Set up uv
