@@ -1,5 +1,6 @@
 ---
 # prettier-ignore
+name: pr-creation
 description: >
   Creates high-quality pull requests with mandatory self-critique before submission.
   Activate this skill whenever you are asked to create, open, submit, or push a pull request.
