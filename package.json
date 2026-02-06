@@ -30,9 +30,6 @@
     "*.md": [
       "prettier --write"
     ],
-    ".claude/skills/*.md": [
-      ".hooks/lint-skills.sh"
-    ],
     ".claude/skills/*/SKILL.md": [
       ".hooks/lint-skills.sh"
     ],

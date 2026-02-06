@@ -9,9 +9,8 @@
 #   3. description: field in frontmatter (2+ sentences for activation context)
 #   4. ## Examples section in body (real input/output pairs prevent generic output)
 #
-# Supports both formats:
-#   - Flat files: .claude/skills/<name>.md
-#   - Directory format: .claude/skills/<name>/SKILL.md
+# Skills must use directory format: .claude/skills/<name>/SKILL.md
+# Flat files (.claude/skills/<name>.md) are rejected.
 #
 # Usage: lint-skills.sh [files...]
 
@@ -20,26 +19,22 @@ set -euo pipefail
 errors=0
 
 for file in "$@"; do
-  # Skip if not a skills file
+  # Skip if not under .claude/skills/
   [[ "$file" != *".claude/skills/"* ]] && continue
 
-  # Determine if this is a valid skill entrypoint:
-  #   - Flat file directly in .claude/skills/ (e.g., .claude/skills/foo.md)
-  #   - SKILL.md inside a skill directory (e.g., .claude/skills/foo/SKILL.md)
   basename_file=$(basename "$file")
-  dirname_file=$(basename "$(dirname "$file")")
   grandparent=$(basename "$(dirname "$(dirname "$file")")")
 
-  is_skill=false
+  # Reject flat files directly in .claude/skills/
+  dirname_file=$(basename "$(dirname "$file")")
   if [[ "$dirname_file" == "skills" && "$basename_file" == *.md ]]; then
-    # Flat file format: .claude/skills/<name>.md
-    is_skill=true
-  elif [[ "$grandparent" == "skills" && "$basename_file" == "SKILL.md" ]]; then
-    # Directory format: .claude/skills/<name>/SKILL.md
-    is_skill=true
+    echo "ERROR: $file uses flat file format — convert to .claude/skills/$(basename "$file" .md)/SKILL.md" >&2
+    errors=$((errors + 1))
+    continue
   fi
 
-  [[ "$is_skill" == "false" ]] && continue
+  # Only validate SKILL.md entrypoints; skip supporting files
+  [[ "$grandparent" != "skills" || "$basename_file" != "SKILL.md" ]] && continue
 
   # Check for YAML frontmatter
   if ! head -1 "$file" | grep -q '^---$'; then
