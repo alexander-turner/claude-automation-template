@@ -235,6 +235,8 @@ jobs:
       - name: Request Claude review for conflicts
         if: inputs.dry-run != 'true' && steps.sync.outputs.has_conflicts == 'true' && steps.create-pr.outputs.pull-request-number
         env:
+          # Note: TEMPLATE_SYNC_TOKEN (a PAT) is required for this comment to trigger
+          # the claude.yaml workflow. GITHUB_TOKEN cannot trigger other workflows.
           GH_TOKEN: ${{ secrets.TEMPLATE_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           gh pr comment "${{ steps.create-pr.outputs.pull-request-number }}" --body "@claude This template sync PR has conflicts - files that differ between the local repo and template. The local versions have been preserved. Please suggest how to merge each conflicting file, keeping project-specific customizations while adopting template improvements.
