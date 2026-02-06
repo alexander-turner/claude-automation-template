@@ -6,18 +6,6 @@ name: Sync from Template
 #
 # When conflicts are detected (local customizations vs template updates),
 # the PR will include detailed conflict information for Claude to help resolve.
-#
-# =============================================================================
-# HANDLING CUSTOMIZATIONS DURING SYNC
-# =============================================================================
-# Projects may have local customizations in synced files (e.g., project-specific
-# tools in session-setup.sh, custom pre-commit checks). When resolving conflicts:
-#
-# 1. Look for header comments like "IMPORTANT: This file has project-specific
-#    customizations" or "Future Claudes: Leave these customizations as-is"
-# 2. Preserve local customizations while adopting new template features
-# 3. When in doubt, keep local changes - they exist for a reason
-# =============================================================================
 
 on:
   workflow_dispatch:
@@ -232,13 +220,15 @@ jobs:
           delete-branch: true
           labels: ${{ steps.sync.outputs.has_conflicts == 'true' && 'template-sync,needs-conflict-resolution' || 'template-sync' }}
 
-      - name: Request Claude review for conflicts
+      - name: Ask Claude for merge suggestions
         if: inputs.dry-run != 'true' && steps.sync.outputs.has_conflicts == 'true' && steps.create-pr.outputs.pull-request-number
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh pr comment "${{ steps.create-pr.outputs.pull-request-number }}" --body "@claude This template sync PR has conflicts - files that differ between the local repo and template. The local versions have been preserved. Please suggest how to merge each conflicting file, keeping project-specific customizations while adopting template improvements.
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
+          prompt: |
+            This template sync PR has conflicts - files that differ between the local repo and template.
+            The local versions have been preserved. Please suggest how to merge each conflicting file,
+            keeping project-specific customizations while adopting template improvements.
 
-          Look for header comments indicating intentional customizations (e.g., 'IMPORTANT: This file has project-specific customizations' or 'Future Claudes: Leave these customizations as-is'). When in doubt, preserve local changes - they exist for a reason.
-
-          Be concise. For each file, suggest what to keep from local vs adopt from template."
+            Be concise. For each file, suggest what to keep from local vs adopt from template.
