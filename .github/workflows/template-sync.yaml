@@ -222,7 +222,7 @@ jobs:
 
       - name: Ask Claude for merge suggestions
         if: inputs.dry-run != 'true' && steps.sync.outputs.has_conflicts == 'true' && steps.create-pr.outputs.pull-request-number
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
