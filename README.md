@@ -1,6 +1,6 @@
 # Claude Automation Template
 
-Pre-configured [Claude Code](https://docs.anthropic.com/en/docs/claude-code) automation with git hooks and GitHub Actions.
+Pre-configured [Claude Code](https://docs.anthropic.com/en/docs/claude-code) automation with git hooks and GitHub Actions. Keeps your .claude up-to-date with this template repo.
 
 ## Quick Start
 
@@ -10,7 +10,7 @@ Pre-configured [Claude Code](https://docs.anthropic.com/en/docs/claude-code) aut
 git clone <your-repo-url> && cd <your-repo> && ./setup.sh
 ```
 
-To let Claude start fixing your PRs after your CI fails, you need to [install the Claude GitHub app](https://github.com/apps/claude).
+To let Claude start fixing your PRs after your CI fails and to auto-sync this repo's files, you need to [install the Claude GitHub app](https://github.com/apps/claude).
 
 ## What's Included
 
