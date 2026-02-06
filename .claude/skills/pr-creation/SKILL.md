@@ -53,7 +53,7 @@ Do **NOT** use this skill for:
 
 ### Step 2: Self-Critique (Required)
 
-**Before creating the PR**, you MUST read `.claude/skills/resources/critique-prompt.md` and launch a critique sub-agent using the Task tool:
+**Before creating the PR**, you MUST read [critique-prompt.md](critique-prompt.md) and launch a critique sub-agent using the Task tool:
 
 - `subagent_type`: "general-purpose"
 - `description`: "Critique code changes"
@@ -69,11 +69,11 @@ Do NOT skip reading the resource file — it contains the detailed checklist the
 
 ### Step 4: Run Validation
 
-Run the project's test/lint/typecheck commands (see `.claude/skills/resources/pr-templates.md` for common commands per language). Fix any failures before proceeding.
+Run the project's test/lint/typecheck commands (see [pr-templates.md](pr-templates.md) for common commands per language). Fix any failures before proceeding.
 
 ### Step 5: Push and Create the Pull Request
 
-You MUST read `.claude/skills/resources/pr-templates.md` for the PR template and formatting guidelines before this step.
+You MUST read [pr-templates.md](pr-templates.md) for the PR template and formatting guidelines before this step.
 
 1. Push the branch: `git push -u origin HEAD`
 2. Create the PR using `gh pr create` with the template from the resource file

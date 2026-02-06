@@ -9,8 +9,9 @@
 #   3. description: field in frontmatter (2+ sentences for activation context)
 #   4. ## Examples section in body (real input/output pairs prevent generic output)
 #
-# Note: lint-staged only passes top-level .claude/skills/*.md files, but the
-# directory check below also handles manual invocation with resource paths.
+# Supports both formats:
+#   - Flat files: .claude/skills/<name>.md
+#   - Directory format: .claude/skills/<name>/SKILL.md
 #
 # Usage: lint-skills.sh [files...]
 
@@ -19,10 +20,26 @@ set -euo pipefail
 errors=0
 
 for file in "$@"; do
-  # Skip if not a top-level skills file (resource files don't need frontmatter)
+  # Skip if not a skills file
   [[ "$file" != *".claude/skills/"* ]] && continue
-  dirname=$(basename "$(dirname "$file")")
-  [[ "$dirname" != "skills" ]] && continue
+
+  # Determine if this is a valid skill entrypoint:
+  #   - Flat file directly in .claude/skills/ (e.g., .claude/skills/foo.md)
+  #   - SKILL.md inside a skill directory (e.g., .claude/skills/foo/SKILL.md)
+  basename_file=$(basename "$file")
+  dirname_file=$(basename "$(dirname "$file")")
+  grandparent=$(basename "$(dirname "$(dirname "$file")")")
+
+  is_skill=false
+  if [[ "$dirname_file" == "skills" && "$basename_file" == *.md ]]; then
+    # Flat file format: .claude/skills/<name>.md
+    is_skill=true
+  elif [[ "$grandparent" == "skills" && "$basename_file" == "SKILL.md" ]]; then
+    # Directory format: .claude/skills/<name>/SKILL.md
+    is_skill=true
+  fi
+
+  [[ "$is_skill" == "false" ]] && continue
 
   # Check for YAML frontmatter
   if ! head -1 "$file" | grep -q '^---$'; then

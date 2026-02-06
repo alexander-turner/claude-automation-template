@@ -33,6 +33,9 @@
     ".claude/skills/*.md": [
       ".hooks/lint-skills.sh"
     ],
+    ".claude/skills/*/SKILL.md": [
+      ".hooks/lint-skills.sh"
+    ],
     "{*.sh,.hooks/*}": [
       "shfmt -i 2 -w"
     ],

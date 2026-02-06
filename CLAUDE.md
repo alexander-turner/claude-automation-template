@@ -35,9 +35,9 @@ Commits must follow [Conventional Commits](https://www.conventionalcommits.org/)
 
 ## Pull Request Requirements
 
-**MANDATORY: Before creating ANY pull request, you MUST follow `.claude/skills/pr-creation.md`.**
+**MANDATORY: Before creating ANY pull request, you MUST use the `/pr-creation` skill.**
 
-This includes:
+This skill is defined at `.claude/skills/pr-creation/SKILL.md` and will be automatically invoked when you ask to create a PR. It enforces:
 
 1. **Self-critique via subagent** - Launch a general-purpose Task agent to review the diff for bugs, security issues, and bloat
 2. **Address critique feedback** - Fix legitimate issues before proceeding
