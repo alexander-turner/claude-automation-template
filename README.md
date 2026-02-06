@@ -39,6 +39,17 @@ Template updates sync daily at 9am UTC. You can also trigger manually:
 
 A PR will be created with any updates for you to review.
 
+### `TEMPLATE_SYNC_TOKEN` (optional)
+
+When synced files conflict with local customizations, the workflow posts an `@claude` comment on the PR to suggest how to merge them. For Claude to auto-respond, you need a PAT — `GITHUB_TOKEN` can't trigger other workflows.
+
+1. Create a **fine-grained Personal Access Token** at [Settings → Developer settings → Personal access tokens](https://github.com/settings/personal-access-tokens)
+   - Repository access: select your repo
+   - Permissions: **Contents** (read/write) + **Pull requests** (read/write)
+2. Add it as a repository secret named `TEMPLATE_SYNC_TOKEN` at **Settings → Secrets and variables → Actions**
+
+Without this token, everything still works — the PR is created with full conflict details — but Claude won't auto-respond to the merge suggestion comment.
+
 ## Requirements
 
 - Node.js 18+
