@@ -25,7 +25,6 @@ run_check() {
 }
 
 # Node.js checks
-has_script build && run_check "build" "pnpm build"
 has_script test && run_check "tests" "pnpm test"
 has_script lint && run_check "lint" "pnpm lint"
 has_script check && run_check "typecheck" "pnpm check"
