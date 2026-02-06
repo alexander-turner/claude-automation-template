@@ -9,8 +9,8 @@
 #   3. description: field in frontmatter (2+ sentences for activation context)
 #   4. ## Examples section in body (real input/output pairs prevent generic output)
 #
-# Note: lint-staged only passes top-level .claude/skills/*.md files, but the
-# directory check below also handles manual invocation with resource paths.
+# Skills must use directory format: .claude/skills/<name>/SKILL.md
+# Flat files (.claude/skills/<name>.md) are rejected.
 #
 # Usage: lint-skills.sh [files...]
 
@@ -19,10 +19,22 @@ set -euo pipefail
 errors=0
 
 for file in "$@"; do
-  # Skip if not a top-level skills file (resource files don't need frontmatter)
+  # Skip if not under .claude/skills/
   [[ "$file" != *".claude/skills/"* ]] && continue
-  dirname=$(basename "$(dirname "$file")")
-  [[ "$dirname" != "skills" ]] && continue
+
+  basename_file=$(basename "$file")
+  grandparent=$(basename "$(dirname "$(dirname "$file")")")
+
+  # Reject flat files directly in .claude/skills/
+  dirname_file=$(basename "$(dirname "$file")")
+  if [[ "$dirname_file" == "skills" && "$basename_file" == *.md ]]; then
+    echo "ERROR: $file uses flat file format — convert to .claude/skills/$(basename "$file" .md)/SKILL.md" >&2
+    errors=$((errors + 1))
+    continue
+  fi
+
+  # Only validate SKILL.md entrypoints; skip supporting files
+  [[ "$grandparent" != "skills" || "$basename_file" != "SKILL.md" ]] && continue
 
   # Check for YAML frontmatter
   if ! head -1 "$file" | grep -q '^---$'; then
