@@ -45,7 +45,7 @@ Only runs scripts that are actually configured in `package.json` — skips place
 
 When Claude finishes a session, `verify-ci-on-stop.sh` blocks completion if any checks fail:
 
-- Runs the same build/test/lint/typecheck checks as the pre-push hook
+- Runs build, test, lint, and typecheck (superset of pre-push checks — adds tests)
 - Returns `decision: "block"` with failure details so Claude continues fixing issues
 - Returns `decision: "approve"` if all checks pass
 

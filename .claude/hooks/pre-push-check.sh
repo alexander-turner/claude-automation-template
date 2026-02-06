@@ -4,19 +4,11 @@
 
 set -uo pipefail
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-cd "$PROJECT_DIR" || exit 1
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib-checks.sh
+source "$HOOK_DIR/lib-checks.sh"
 
 FAILED=0
-
-# Helpers
-exists() { command -v "$1" &>/dev/null; }
-
-has_script() {
-  [[ -f package.json ]] &&
-    jq -e ".scripts.$1" package.json &>/dev/null &&
-    ! jq -r ".scripts.$1" package.json | grep -q "ERROR: Configure"
-}
 
 run_check() {
   local name="$1" cmd="$2"
@@ -29,7 +21,7 @@ run_check() {
 
 echo "=== PRE-PR CHECKS ===" >&2
 
-# Node.js checks
+# Node.js checks (tests intentionally omitted — they run in CI and the stop hook)
 has_script build && run_check "build" "pnpm build"
 has_script lint && run_check "lint" "pnpm lint"
 has_script check && run_check "typecheck" "pnpm check"
@@ -39,7 +31,7 @@ if [[ -f pyproject.toml ]] || [[ -f uv.lock ]]; then
   PREFIX=""
   [[ -f uv.lock ]] && exists uv && PREFIX="uv run "
 
-  exists ruff || [[ -n "$PREFIX" ]] && run_check "ruff" "${PREFIX}ruff check ."
+  { exists ruff || [[ -n "$PREFIX" ]]; } && run_check "ruff" "${PREFIX}ruff check ."
 fi
 
 exit $FAILED
