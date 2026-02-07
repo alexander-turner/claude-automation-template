@@ -37,6 +37,16 @@ Do **NOT** use this skill for:
 - Merging a PR (`gh pr merge`)
 - Updating a PR description only (just run `gh pr edit`)
 
+## Updating an Existing PR
+
+Before updating an existing PR (pushing new commits, editing the description, etc.), you MUST check its current status:
+
+1. Run `gh pr view <pr-number> --json state,mergedAt` to check the PR state
+2. Based on the result:
+   - **Open**: Proceed with the update normally
+   - **Merged**: Do NOT update it. Create a new PR instead with the additional changes
+   - **Closed** (not merged): Ask the user what they'd like to do before taking any action
+
 ## Prerequisites
 
 - GitHub CLI (`gh`) must be authenticated
