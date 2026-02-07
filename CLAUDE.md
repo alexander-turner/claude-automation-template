@@ -101,6 +101,25 @@ The automation will then:
 - Automatically fix CI failures on `claude/` branches
 - Review code and answer questions about the codebase
 
+## Hook Error Handling
+
+If any hook fails during a session (SessionStart, PreToolUse, PostToolUse, Stop, or git hooks like pre-commit and commit-msg), you MUST:
+
+1. **Warn the user prominently.** Output a clear, highly visible warning that identifies:
+   - Which hook failed (e.g., `session-setup.sh`, `pre-push-check.sh`, `pre-commit`)
+   - The error output or exit code
+   - Which file(s) are involved
+
+2. **Suggest a pull request to fix the problem.** Identify the root cause and propose a fix:
+   - For Claude Code hooks: check files in `.claude/hooks/` (e.g., `session-setup.sh`, `pre-push-check.sh`, `verify-ci-on-stop.sh`, `lib-checks.sh`)
+   - For git hooks: check files in `.hooks/` (e.g., `pre-commit`, `commit-msg`)
+   - For setup issues: check `package.json` postinstall scripts and `.claude/settings.json` hook configuration
+   - Create a PR to **this repository** with the fix
+
+3. **Determine if the issue is general or repo-specific.**
+   - **Repo-specific** (e.g., a misconfigured script path, a missing project dependency, a project-specific lint rule): fix it in this repository only.
+   - **General** (e.g., a bug in the hook scripts themselves, a missing edge case in `session-setup.sh`, a broken pattern in `lib-checks.sh`, or an issue that would affect any repo using this template): tell the user to also open a pull request on the **template repository** ([`alexander-turner/claude-automation-template`](https://github.com/alexander-turner/claude-automation-template)) so all downstream projects benefit from the fix.
+
 ## Customization Checklist
 
 After cloning, update the following:
