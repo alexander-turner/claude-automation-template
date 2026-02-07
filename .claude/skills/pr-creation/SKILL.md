@@ -50,7 +50,7 @@ Before updating an existing PR (pushing new commits, editing the description, et
 2. Based on the result:
    - **Open**: Proceed with the update normally
    - **Merged**: Do NOT update it. Create a new PR instead with the additional changes
-   - **Closed** (not merged): Ask the user what they'd like to do before taking any action
+   - **Closed** (not merged): Ask the user what they'd like to do, if not already clarified
 
 ## Workflow
 
