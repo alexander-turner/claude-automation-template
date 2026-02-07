@@ -79,6 +79,7 @@ tests/            # Test files (create as needed)
 - Write focused, non-duplicative tests
 - Parametrize tests for compactness while achieving high coverage
 - Prefer exact equality assertions over partial/contains checks—make tests as strict as possible
+- **Interaction features/bug fixes**: When adding an interaction feature or fixing an interaction bug, add end-to-end tests (e.g., Playwright `*.spec.ts`) following best practices (test both mobile and desktop viewports, verify visual state not just DOM state)
 
 ### Dependencies
 
