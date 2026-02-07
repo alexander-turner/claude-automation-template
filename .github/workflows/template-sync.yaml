@@ -34,7 +34,7 @@ on:
 env:
   TEMPLATE_REPO: "alexander-turner/claude-automation-template"
   # Only sync core automation files that don't need customization
-  SYNC_PATHS: ".claude .hooks .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml"
+  SYNC_PATHS: ".claude .hooks .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml .github/workflows/claude.yaml"
   # These are excluded because they require project-specific customization
   # (comment-on-failed-checks needs workflow names, lint/test need project scripts)
   EXCLUDE_PATHS: ""
@@ -235,7 +235,7 @@ jobs:
       - name: Request Claude review for conflicts
         if: inputs.dry-run != 'true' && steps.sync.outputs.has_conflicts == 'true' && steps.create-pr.outputs.pull-request-number
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.TEMPLATE_SYNC_TOKEN || github.token }}
         run: |
           gh pr comment "${{ steps.create-pr.outputs.pull-request-number }}" --body "@claude This template sync PR has conflicts - files that differ between the local repo and template. The local versions have been preserved. Please suggest how to merge each conflicting file, keeping project-specific customizations while adopting template improvements.
 
