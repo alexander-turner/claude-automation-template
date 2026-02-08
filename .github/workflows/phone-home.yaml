@@ -45,10 +45,11 @@ jobs:
               return;
             }
 
-            // Filter out unfilled template placeholders (lines wrapped in angle brackets)
+            // Filter out template placeholders and session URLs
             const filtered = lessons
               .split('\n')
               .filter(line => !line.trim().match(/^<.*>$/))
+              .filter(line => !line.trim().match(/^https:\/\/claude\.ai\/code\/session_/))
               .join('\n')
               .trim();
             if (!filtered || filtered.length < 10) {

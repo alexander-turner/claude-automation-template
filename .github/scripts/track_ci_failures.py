@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-"""Track CI failures on claude/ branch PRs and escalate when fixes are exhausted.
+"""Track CI failures on claude/ branch PRs and escalate when exhausted.
 
-Called by the comment-on-failed-checks workflow. Reads context from environment
-variables and uses the gh CLI for GitHub API calls.
-
-This is a notification/labeling system only — it does NOT ping @claude to trigger
-new fix sessions. The Stop hook in the interactive session is the primary fix
-mechanism. This workflow exists to:
-  1. Track which workflows have failed and how many times
-  2. Leave clear comments for humans to see what's broken
-  3. Label the PR `needs-human-review` when automated fixes are exhausted
+Notification/labeling system only — does NOT ping @claude. The Stop hook
+(verify_ci.py) is the primary fix mechanism. This script:
+  1. Tracks which workflows failed and how many times
+  2. Leaves comments for humans to see what's broken
+  3. Labels the PR `needs-human-review` when all workflows are exhausted
 """
 
 from __future__ import annotations
@@ -29,9 +25,6 @@ def gh_api(
 ) -> dict | list | None:
     """Call the GitHub API via the gh CLI."""
     cmd = ["gh", "api", endpoint, "-X", method]
-    if method == "GET":
-        cmd.append("--paginate")
-
     input_data = None
     if body is not None:
         cmd.extend(["--input", "-"])
@@ -42,14 +35,12 @@ def gh_api(
         raise RuntimeError(
             f"gh api {method} {endpoint} failed: {result.stderr.strip()}"
         )
-
     if not result.stdout.strip():
         return None
     return json.loads(result.stdout)
 
 
 def main() -> None:
-    # Read context from environment (set by the workflow)
     repo = os.environ["GITHUB_REPOSITORY"]
     pr_number = os.environ["PR_NUMBER"]
     workflow_name = os.environ["WORKFLOW_NAME"]
@@ -63,24 +54,22 @@ def main() -> None:
     tracker = None
     failures: dict[str, list[dict]] = {}
     for comment in comments:
-        body = comment.get("body") or ""
-        if TRACKER_MARKER in body:
+        if TRACKER_MARKER in (comment.get("body") or ""):
             tracker = comment
-            match = re.search(r"<!-- failures:(\{.*?\}) -->", body)
-            if match:
+            m = re.search(r"<!-- failures:(\{.*?\}) -->", tracker["body"])
+            if m:
                 try:
-                    failures = json.loads(match.group(1))
+                    failures = json.loads(m.group(1))
                 except json.JSONDecodeError:
-                    print("Failed to parse existing failure state, starting fresh")
+                    print("Corrupt failure state, starting fresh")
             break
 
-    # Dedup: skip if we already tracked this specific run
-    if any(f["run"] == run_id for f in failures.get(workflow_name, [])):
+    # Dedup: skip if we already tracked this run or workflow is exhausted
+    wf_runs = failures.get(workflow_name, [])
+    if any(f["run"] == run_id for f in wf_runs):
         print(f"Already tracked run {run_id} for {workflow_name}, skipping")
         return
-
-    # Skip if workflow has exhausted its attempts
-    if len(failures.get(workflow_name, [])) >= MAX_ATTEMPTS:
+    if len(wf_runs) >= MAX_ATTEMPTS:
         print(f"{workflow_name} already at {MAX_ATTEMPTS} attempts, skipping")
         return
 
@@ -90,47 +79,35 @@ def main() -> None:
     )
 
     just_exhausted = len(failures[workflow_name]) >= MAX_ATTEMPTS
-    # "all exhausted" means every workflow that has ever failed has hit its limit
-    all_exhausted = all(len(runs) >= MAX_ATTEMPTS for runs in failures.values())
+    all_exhausted = all(len(r) >= MAX_ATTEMPTS for r in failures.values())
 
-    # Build the failure summary lines
-    failure_lines = []
+    # Build failure summary
+    lines = []
     for name, runs in failures.items():
         latest = runs[-1]
-        exhausted = len(runs) >= MAX_ATTEMPTS
-        status = " (giving up)" if exhausted else ""
-        failure_lines.append(
+        status = " (giving up)" if len(runs) >= MAX_ATTEMPTS else ""
+        lines.append(
             f"- **{name}** [failed]({latest['url']}) on commit "
             f"{latest['sha']} (attempt {len(runs)}/{MAX_ATTEMPTS}){status}"
         )
-    failure_list = "\n".join(failure_lines)
-
-    # Build comment body — no @claude mention (this is notification-only)
-    failures_json = json.dumps(failures)
+    failure_list = "\n".join(lines)
+    header = f"{TRACKER_MARKER}\n<!-- failures:{json.dumps(failures)} -->\n"
 
     if all_exhausted:
         body = (
-            f"{TRACKER_MARKER}\n"
-            f"<!-- failures:{failures_json} -->\n"
-            f"**Automated fix attempts exhausted.** The following workflows failed "
-            f"repeatedly and could not be fixed automatically:\n\n"
-            f"{failure_list}\n\n"
-            f"Human review is needed to resolve these failures."
+            f"{header}**Automated fix attempts exhausted.** The following "
+            f"workflows failed repeatedly:\n\n{failure_list}\n\n"
+            f"Human review is needed."
         )
     elif just_exhausted:
         body = (
-            f"{TRACKER_MARKER}\n"
-            f"<!-- failures:{failures_json} -->\n"
-            f"The following workflows have failed:\n\n"
+            f"{header}The following workflows have failed:\n\n"
             f"{failure_list}\n\n"
-            f"**{workflow_name}** has exhausted its {MAX_ATTEMPTS} fix attempts."
+            f"**{workflow_name}** has exhausted its {MAX_ATTEMPTS} attempts."
         )
     else:
         body = (
-            f"{TRACKER_MARKER}\n"
-            f"<!-- failures:{failures_json} -->\n"
-            f"The following workflows have failed on this PR:\n\n"
-            f"{failure_list}"
+            f"{header}The following workflows have failed on this PR:\n\n{failure_list}"
         )
 
     # Create or update the tracker comment

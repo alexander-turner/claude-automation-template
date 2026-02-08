@@ -67,8 +67,8 @@ Skills are automatically available to Claude Code when working in this repositor
 Edit `hooks/session-setup.sh` to add more tools:
 
 ```bash
-# Via pip
-pip_install_if_missing mycommand mypackage
+# Via uv
+uv_install_if_missing mycommand mypackage
 
 # Via webi (https://webinstall.dev)
 webi_install_if_missing mytool

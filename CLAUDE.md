@@ -133,7 +133,7 @@ If any hook fails during a session (SessionStart, PreToolUse, PostToolUse, Stop,
    - Which file(s) are involved
 
 2. **Suggest a pull request to fix the problem.** Identify the root cause and propose a fix:
-   - For Claude Code hooks: check files in `.claude/hooks/` (e.g., `session-setup.sh`, `pre-push-check.sh`, `verify-ci-on-stop.sh`, `lib-checks.sh`)
+   - For Claude Code hooks: check files in `.claude/hooks/` (e.g., `session-setup.sh`, `pre-push-check.sh`, `verify_ci.py`, `lib-checks.sh`)
    - For git hooks: check files in `.hooks/` (e.g., `pre-commit`, `commit-msg`)
    - For setup issues: check `package.json` postinstall scripts and `.claude/settings.json` hook configuration
    - Create a PR to **this repository** with the fix

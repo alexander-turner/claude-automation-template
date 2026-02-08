@@ -12,10 +12,6 @@ import pytest
 
 from tests.helpers import completed as _completed_fn
 
-# ---------------------------------------------------------------------------
-# Fixtures: temporary project directory
-# ---------------------------------------------------------------------------
-
 
 @pytest.fixture()
 def project_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -27,7 +23,7 @@ def project_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 @pytest.fixture()
 def package_json(project_dir: Path):
-    """Helper to write a package.json with the given scripts dict."""
+    """Factory to write a package.json with given scripts."""
 
     def _write(scripts: dict[str, str] | None = None) -> Path:
         data: dict[str, Any] = {"name": "test"}
@@ -40,63 +36,46 @@ def package_json(project_dir: Path):
     return _write
 
 
-# ---------------------------------------------------------------------------
-# Fixtures: subprocess mocking
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture()
 def mock_subprocess(monkeypatch: pytest.MonkeyPatch):
-    """Replace subprocess.run with a mock that returns configurable results.
+    """Replace subprocess.run with a configurable mock.
 
-    Returns a dict-backed dispatcher: set ``mock[cmd_prefix] = CompletedProcess``
-    to control what each command returns. Unmatched commands succeed by default.
+    Usage: ``mock_subprocess["pnpm test"] = completed(1, stderr="FAIL")``
+
+    Matching uses startswith on the command string. Commands without a
+    registered prefix return success by default.
     """
     results: dict[str, subprocess.CompletedProcess[str]] = {}
     mock = MagicMock(side_effect=lambda *a, **kw: _match(a, kw, results))
     monkeypatch.setattr(subprocess, "run", mock)
 
     class _Proxy:
-        """Allows setting results[key] and inspecting calls."""
-
-        def __setitem__(self, key: str, value: subprocess.CompletedProcess[str]):
+        def __setitem__(self, key, value):
             results[key] = value
 
         @property
-        def calls(self) -> list:
+        def calls(self):
             return mock.call_args_list
-
-        @property
-        def mock(self) -> MagicMock:
-            return mock
 
     return _Proxy()
 
 
-def _match(
-    args: tuple,
-    kwargs: dict,
-    results: dict[str, subprocess.CompletedProcess[str]],
-) -> subprocess.CompletedProcess[str]:
-    """Find the first matching result by prefix of the command string."""
+def _match(args, kwargs, results):
+    """Match command against registered prefixes (startswith only)."""
     cmd = args[0] if args else kwargs.get("args", "")
     if isinstance(cmd, list):
         cmd = " ".join(cmd)
-    for prefix, result in results.items():
-        if cmd.startswith(prefix) or prefix in cmd:
-            return result
+    # Try longest prefix first for deterministic matching
+    for prefix in sorted(results, key=len, reverse=True):
+        if cmd.startswith(prefix):
+            return results[prefix]
     return _completed_fn()
-
-
-# ---------------------------------------------------------------------------
-# Fixtures: environment helpers for track_ci_failures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture()
 def tracker_env(monkeypatch: pytest.MonkeyPatch):
     """Set default env vars for track_ci_failures.main()."""
-    defaults = {
+    env = {
         "GITHUB_REPOSITORY": "owner/repo",
         "PR_NUMBER": "42",
         "WORKFLOW_NAME": "CI",
@@ -104,6 +83,6 @@ def tracker_env(monkeypatch: pytest.MonkeyPatch):
         "RUN_ID": "1001",
         "HEAD_SHA": "abc1234def5678",
     }
-    for k, v in defaults.items():
+    for k, v in env.items():
         monkeypatch.setenv(k, v)
-    return defaults
+    return env
