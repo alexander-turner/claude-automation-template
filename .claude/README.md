@@ -10,7 +10,8 @@ This directory contains configuration and skills for Claude Code.
 ├── hooks/
 │   ├── session-setup.sh       # Runs on session start (installs tools, configures git)
 │   ├── pre-push-check.sh     # Runs before git push / gh pr (build, lint, typecheck)
-│   └── verify-ci-on-stop.sh  # Runs on session stop (blocks if checks fail)
+│   ├── verify-ci-on-stop.sh  # Runs on session stop (blocks if checks fail, max 3 retries)
+│   └── lib-checks.sh         # Shared helpers (exists, has_script)
 └── skills/
     └── pr-creation/       # PR creation workflow with self-critique
         ├── SKILL.md       # Main skill entrypoint
@@ -48,6 +49,7 @@ When Claude finishes a session, `verify-ci-on-stop.sh` blocks completion if any 
 - Runs test, lint, and typecheck (superset of pre-push checks — adds tests)
 - Returns `decision: "block"` with failure details so Claude continues fixing issues
 - Returns `decision: "approve"` if all checks pass
+- **Retry limit**: After 3 failed attempts (configurable via `MAX_STOP_RETRIES`), approves anyway with a warning to prevent infinite token burn
 
 ### Skills
 

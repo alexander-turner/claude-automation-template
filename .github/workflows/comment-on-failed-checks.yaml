@@ -2,6 +2,8 @@ name: Comment on Failed Checks
 
 # This workflow comments on PRs from claude/ branches when CI checks fail,
 # helping Claude Code identify and fix issues automatically.
+# After max attempts per workflow, it labels the PR for human review instead
+# of pinging Claude indefinitely.
 
 on:
   workflow_run:
@@ -86,21 +88,54 @@ jobs:
               }
               failures[workflowName].push({ run: runId, sha: headSha, url: runUrl });
 
+              // Check if this workflow just hit its limit
+              const justExhausted = failures[workflowName].length >= maxAttempts;
+
+              // Check if ALL tracked workflows have exhausted their attempts
+              const allExhausted = Object.values(failures).every(runs => runs.length >= maxAttempts);
+
               // Build comment body
               const failureLines = Object.entries(failures).map(([name, runs]) => {
                 const latest = runs[runs.length - 1];
-                return `- **${name}** [failed](${latest.url}) on commit ${latest.sha} (attempt ${runs.length}/${maxAttempts})`;
+                const exhausted = runs.length >= maxAttempts;
+                const status = exhausted ? ' (giving up)' : '';
+                return `- **${name}** [failed](${latest.url}) on commit ${latest.sha} (attempt ${runs.length}/${maxAttempts})${status}`;
               }).join('\n');
 
-              const body = [
-                trackerMarker,
-                `<!-- failures:${JSON.stringify(failures)} -->`,
-                '@claude The following workflows have failed:',
-                '',
-                failureLines,
-                '',
-                'Please investigate and fix the issues.'
-              ].join('\n');
+              let body;
+              if (allExhausted) {
+                // All workflows exhausted — stop pinging Claude, escalate to human
+                body = [
+                  trackerMarker,
+                  `<!-- failures:${JSON.stringify(failures)} -->`,
+                  '**Automated fix attempts exhausted.** The following workflows failed repeatedly and could not be fixed automatically:',
+                  '',
+                  failureLines,
+                  '',
+                  'Human review is needed to resolve these failures.',
+                ].join('\n');
+              } else if (justExhausted) {
+                // This workflow exhausted but others may still be active
+                body = [
+                  trackerMarker,
+                  `<!-- failures:${JSON.stringify(failures)} -->`,
+                  `@claude The following workflows have failed:`,
+                  '',
+                  failureLines,
+                  '',
+                  `**${workflowName}** has exhausted its ${maxAttempts} fix attempts. Focus on the remaining failures.`,
+                ].join('\n');
+              } else {
+                body = [
+                  trackerMarker,
+                  `<!-- failures:${JSON.stringify(failures)} -->`,
+                  '@claude The following workflows have failed:',
+                  '',
+                  failureLines,
+                  '',
+                  'Please investigate and fix the issues.'
+                ].join('\n');
+              }
 
               if (trackerComment) {
                 await github.rest.issues.updateComment({
@@ -118,6 +153,21 @@ jobs:
                   body: body,
                 });
                 console.log(`Created tracker comment for ${workflowName} failure`);
+              }
+
+              // Add label when all attempts are exhausted so humans can filter
+              if (allExhausted) {
+                try {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: prNumber,
+                    labels: ['needs-human-review'],
+                  });
+                  console.log('Added needs-human-review label');
+                } catch (labelError) {
+                  console.log(`Failed to add label (may not exist): ${labelError.message}`);
+                }
               }
             } catch (error) {
               core.setFailed(`Failed to comment on PR: ${error.message}`);

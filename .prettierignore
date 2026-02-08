@@ -14,3 +14,6 @@ __pycache__/
 .venv/
 .uv/
 uv.lock
+
+# Template sync
+.template-version

@@ -47,17 +47,15 @@ Use a `!` after the type/scope to indicate a breaking change (e.g., `feat!: remo
 
 Use the `/pr-creation` skill when creating pull requests. It handles self-critique, validation, and CI checks.
 
-## Post-PR Reflection
+## Post-PR Reflection (Phone Home)
 
-After completing a pull request, reflect on the conversation and look for generalizable mistakes or patterns that could have been prevented with better guidance in this file.
+When creating a PR, include a `## Lessons Learned` section in the PR body if you discovered generalizable insights that could improve the template for all downstream projects. Examples:
 
-If you identify improvements:
+- A hook edge case that caused failures
+- A missing check that should be in the pre-push or stop hooks
+- A CLAUDE.md instruction that would have prevented a mistake
 
-1. Note specific lessons learned (e.g., "Always check X before Y", "Remember to handle edge case Z")
-2. Create a separate PR to the template repository (`alexander-turner/claude-automation-template`) adding these insights to `CLAUDE.md`
-3. Keep additions concise and actionable
-
-This continuous improvement loop helps prevent recurring issues across future sessions.
+When the PR is merged, the `phone-home.yaml` workflow automatically opens an issue on the template repository with the lessons learned, so they can be reviewed and adopted across all projects. This replaces the previous manual process of creating PRs on the template repo directly.
 
 ## Project Structure
 
@@ -101,8 +99,18 @@ tests/            # Test files (create as needed)
 
 This template uses the official [claude-code-action](https://github.com/anthropics/claude-code-action) for GitHub automation:
 
-1. **claude.yaml** - Responds to `@claude` mentions in issues, PRs, and comments
-2. **comment-on-failed-checks.yaml** - Detects CI failures on `claude/` branches and tags `@claude` for auto-fix
+1. **claude.yaml** - Responds to `@claude` mentions in issues, PRs, and comments (with concurrency guard to prevent parallel sessions on the same PR)
+2. **comment-on-failed-checks.yaml** - Detects CI failures on `claude/` branches and tags `@claude` for auto-fix (max 2 attempts per workflow, then labels `needs-human-review` and stops pinging)
+3. **phone-home.yaml** - When a merged PR contains a "Lessons Learned" section, automatically opens an issue on the template repo to propagate improvements
+4. **template-sync.yaml** - Daily sync from template with version tracking, deletion detection, and conflict resolution via `@claude`
+
+### Retry and Bailout Behavior
+
+The automation has built-in safeguards against infinite token spend:
+
+- **Stop hook**: Blocks session completion if checks fail, but gives up after 3 attempts (configurable via `MAX_STOP_RETRIES` env var). After exhausting retries, it approves with a warning.
+- **CI failure comments**: Each workflow gets max 2 `@claude` pings. After all tracked workflows exhaust their attempts, the PR is labeled `needs-human-review` and Claude is no longer pinged.
+- **PostToolUse CI watcher**: `gh pr checks --watch` has a 5-minute timeout to prevent indefinite hangs.
 
 ### Setup Required
 
@@ -111,8 +119,9 @@ To let Claude start fixing your PRs after your CI fails, you need to [install th
 The automation will then:
 
 - Respond to `@claude` mentions in issues and PRs
-- Automatically fix CI failures on `claude/` branches
+- Automatically fix CI failures on `claude/` branches (with retry limits)
 - Review code and answer questions about the codebase
+- Phone home improvements to the template repo when PRs are merged
 
 ## Hook Error Handling
 
