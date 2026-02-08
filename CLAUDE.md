@@ -78,6 +78,7 @@ tests/            # Test files (create as needed)
 ### Code Style
 
 - Prefer throwing errors that "fail loudly" over logging warnings for critical issues
+- Don't wrap code in try/except unless there's a specific recovery action — let exceptions propagate naturally
 - Un-nest conditionals where possible; combine related checks into single blocks
 - Create shared helpers when the same logic is needed in multiple places
 - In TypeScript, only use template literals if using variable substitution

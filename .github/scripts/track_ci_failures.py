@@ -14,7 +14,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 
 MAX_ATTEMPTS = 2
 TRACKER_MARKER = "<!-- claude-failure-tracker -->"
@@ -140,8 +139,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    main()
