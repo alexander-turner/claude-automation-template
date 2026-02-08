@@ -47,17 +47,15 @@ Use a `!` after the type/scope to indicate a breaking change (e.g., `feat!: remo
 
 Use the `/pr-creation` skill when creating pull requests. It handles self-critique, validation, and CI checks.
 
-## Post-PR Reflection
+## Post-PR Reflection (Phone Home)
 
-After completing a pull request, reflect on the conversation and look for generalizable mistakes or patterns that could have been prevented with better guidance in this file.
+When creating a PR, include a `## Lessons Learned` section in the PR body if you discovered generalizable insights that could improve the template for all downstream projects. Examples:
 
-If you identify improvements:
+- A hook edge case that caused failures
+- A missing check that should be in the pre-push or stop hooks
+- A CLAUDE.md instruction that would have prevented a mistake
 
-1. Note specific lessons learned (e.g., "Always check X before Y", "Remember to handle edge case Z")
-2. Create a separate PR to the template repository (`alexander-turner/claude-automation-template`) adding these insights to `CLAUDE.md`
-3. Keep additions concise and actionable
-
-This continuous improvement loop helps prevent recurring issues across future sessions.
+When the PR is merged, the `phone-home.yaml` workflow automatically opens an issue on the template repository with the lessons learned, so they can be reviewed and adopted across all projects. This replaces the previous manual process of creating PRs on the template repo directly.
 
 ## Project Structure
 
@@ -80,6 +78,7 @@ tests/            # Test files (create as needed)
 ### Code Style
 
 - Prefer throwing errors that "fail loudly" over logging warnings for critical issues
+- Don't wrap code in try/except unless there's a specific recovery action — let exceptions propagate naturally
 - Un-nest conditionals where possible; combine related checks into single blocks
 - Create shared helpers when the same logic is needed in multiple places
 - In TypeScript, only use template literals if using variable substitution
@@ -101,8 +100,18 @@ tests/            # Test files (create as needed)
 
 This template uses the official [claude-code-action](https://github.com/anthropics/claude-code-action) for GitHub automation:
 
-1. **claude.yaml** - Responds to `@claude` mentions in issues, PRs, and comments
-2. **comment-on-failed-checks.yaml** - Detects CI failures on `claude/` branches and tags `@claude` for auto-fix
+1. **claude.yaml** - Responds to `@claude` mentions in issues, PRs, and comments (with concurrency guard to prevent parallel sessions on the same PR)
+2. **comment-on-failed-checks.yaml** - Tracks CI failures on `claude/` branches, labels PR `needs-human-review` after max attempts (notification only — does not trigger new Claude sessions)
+3. **phone-home.yaml** - When a merged PR contains a "Lessons Learned" section, automatically opens an issue on the template repo to propagate improvements
+4. **template-sync.yaml** - Daily sync from template with version tracking, deletion detection, and conflict resolution via `@claude`
+
+### Retry and Bailout Behavior
+
+The automation has built-in safeguards against infinite token spend:
+
+- **Stop hook** (`verify_ci.py`): Blocks session completion if checks fail, but gives up after 3 attempts (configurable via `MAX_STOP_RETRIES` env var). After exhausting retries, it approves with a warning. This is the **primary fix mechanism** — it runs in the interactive session with full context.
+- **CI failure tracking** (`track_ci_failures.py`): Notification-only. Tracks which workflows failed and how many times. After all tracked workflows exhaust their 2 attempts, labels the PR `needs-human-review`. Does not ping `@claude` — spawning context-free sessions to fix CI failures is unreliable.
+- **PostToolUse CI watcher**: `gh pr checks --watch` has a 5-minute timeout to prevent indefinite hangs.
 
 ### Setup Required
 
@@ -111,8 +120,9 @@ To let Claude start fixing your PRs after your CI fails, you need to [install th
 The automation will then:
 
 - Respond to `@claude` mentions in issues and PRs
-- Automatically fix CI failures on `claude/` branches
+- Track CI failures on `claude/` branches and label for human review when stuck
 - Review code and answer questions about the codebase
+- Phone home improvements to the template repo when PRs are merged
 
 ## Hook Error Handling
 
@@ -124,7 +134,7 @@ If any hook fails during a session (SessionStart, PreToolUse, PostToolUse, Stop,
    - Which file(s) are involved
 
 2. **Suggest a pull request to fix the problem.** Identify the root cause and propose a fix:
-   - For Claude Code hooks: check files in `.claude/hooks/` (e.g., `session-setup.sh`, `pre-push-check.sh`, `verify-ci-on-stop.sh`, `lib-checks.sh`)
+   - For Claude Code hooks: check files in `.claude/hooks/` (e.g., `session-setup.sh`, `pre-push-check.sh`, `verify_ci.py`, `lib-checks.sh`)
    - For git hooks: check files in `.hooks/` (e.g., `pre-commit`, `commit-msg`)
    - For setup issues: check `package.json` postinstall scripts and `.claude/settings.json` hook configuration
    - Create a PR to **this repository** with the fix
