@@ -122,6 +122,14 @@ fi
 # Install Python dependencies if uv.lock exists
 if [ -f "$PROJECT_DIR/uv.lock" ] && command -v uv &>/dev/null; then
 	uv sync --quiet 2>/dev/null || warn "Failed to sync Python dependencies"
+	# Add .venv/bin to PATH so Python tools (autoflake, isort, autopep8, etc.)
+	# installed by uv sync are available to lint-staged and other commands
+	if [ -d "$PROJECT_DIR/.venv/bin" ]; then
+		export PATH="$PROJECT_DIR/.venv/bin:$PATH"
+		if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+			echo "export PATH=\"$PROJECT_DIR/.venv/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
+		fi
+	fi
 fi
 
 if [ "$SETUP_WARNINGS" -gt 0 ]; then
