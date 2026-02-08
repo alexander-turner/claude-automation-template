@@ -66,6 +66,17 @@ if ! command -v shellcheck &>/dev/null && is_root; then
 fi
 
 #######################################
+# Clean up stale state from previous sessions
+#######################################
+
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$HOOK_DIR/lib-checks.sh" ]; then
+	# shellcheck source=lib-checks.sh
+	source "$HOOK_DIR/lib-checks.sh"
+	rm -f "$(stop_retry_file)"
+fi
+
+#######################################
 # Git setup
 #######################################
 

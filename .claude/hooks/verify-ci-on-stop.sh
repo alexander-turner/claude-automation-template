@@ -15,8 +15,7 @@ source "$HOOK_DIR/lib-checks.sh"
 
 MAX_STOP_RETRIES="${MAX_STOP_RETRIES:-3}"
 
-# Session-stable file keyed on the project directory
-RETRY_FILE="/tmp/claude-stop-attempts-$(echo "$PROJECT_DIR" | md5sum | cut -d' ' -f1)"
+RETRY_FILE="$(stop_retry_file)"
 
 attempt=1
 if [[ -f "$RETRY_FILE" ]]; then

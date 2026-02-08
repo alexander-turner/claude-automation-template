@@ -170,29 +170,33 @@ jobs:
           # Detect deleted files
           #############################################
 
-          # For each sync path, find files that exist locally but not in template
-          for path in $SYNC_PATHS; do
-            # Skip excludes
-            skip=false
-            for exclude in $EXCLUDE_PATHS; do
-              [ "$path" = "$exclude" ] && skip=true && break
-            done
-            [ "$skip" = "true" ] && continue
+          # Only detect deletions if we have a previous version to compare against.
+          # A file is "deleted" only if it existed in the template at PREV_SHA but
+          # no longer exists at the current template HEAD. This avoids false positives
+          # for project-specific files that were never in the template.
+          if [ -n "$PREV_SHA" ]; then
+            # Get the list of files that existed in the template at the previous sync point
+            git -C _template ls-tree -r --name-only "$PREV_SHA" 2>/dev/null > /tmp/prev_template_files.txt || true
 
-            # Only check directories (individual files are handled by their presence/absence)
-            if [ -d "$path" ] && [ -d "_template/$path" ]; then
-              while IFS= read -r local_file; do
-                rel_path="${local_file}"
-                if [ ! -f "_template/$rel_path" ]; then
-                  echo "DELETED in template: $rel_path"
-                  echo "$rel_path" >> /tmp/deleted_files.txt
+            for path in $SYNC_PATHS; do
+              skip=false
+              for exclude in $EXCLUDE_PATHS; do
+                [ "$path" = "$exclude" ] && skip=true && break
+              done
+              [ "$skip" = "true" ] && continue
+
+              # Find files under this path that existed in the previous template but not in current
+              while IFS= read -r prev_file; do
+                # Only consider files under the current sync path
+                case "$prev_file" in "$path"|"$path/"*) ;; *) continue ;; esac
+
+                if [ ! -f "_template/$prev_file" ]; then
+                  echo "DELETED in template: $prev_file"
+                  echo "$prev_file" >> /tmp/deleted_files.txt
                 fi
-              done < <(find "$path" -type f)
-            elif [ -f "$path" ] && [ ! -f "_template/$path" ]; then
-              echo "DELETED in template: $path"
-              echo "$path" >> /tmp/deleted_files.txt
-            fi
-          done
+              done < /tmp/prev_template_files.txt
+            done
+          fi
 
           #############################################
           # Process sync paths
