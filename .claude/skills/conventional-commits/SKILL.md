@@ -42,15 +42,3 @@ EOF
 ### 4. Verify
 
 If commitlint rejects the message, fix and create a **new** commit (don't amend). Confirm hash and message to the user.
-
-## Examples
-
-### Example 1: Single-type change
-
-**User:** "Commit this fix"
-**Actions:** `git status` shows `src/auth/login.ts` modified with a null check fix. Stage it, commit as `fix(auth): handle null session token during login`, report the hash.
-
-### Example 2: Mixed changes
-
-**User:** "Commit everything"
-**Actions:** `git status` shows a refactored API file, updated README, and new env var. Ask: "Split into separate commits or combine?" If splitting, create: `refactor(api): simplify user lookup query`, `docs: update README with new env variables`, `chore: add CACHE_TTL to .env.example`.
