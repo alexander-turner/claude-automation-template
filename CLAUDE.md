@@ -100,7 +100,7 @@ tests/            # Test files (create as needed)
 This template uses the official [claude-code-action](https://github.com/anthropics/claude-code-action) for GitHub automation:
 
 1. **claude.yaml** - Responds to `@claude` mentions in issues, PRs, and comments (with concurrency guard to prevent parallel sessions on the same PR)
-2. **comment-on-failed-checks.yaml** - Detects CI failures on `claude/` branches and tags `@claude` for auto-fix (max 2 attempts per workflow, then labels `needs-human-review` and stops pinging)
+2. **comment-on-failed-checks.yaml** - Tracks CI failures on `claude/` branches, labels PR `needs-human-review` after max attempts (notification only — does not trigger new Claude sessions)
 3. **phone-home.yaml** - When a merged PR contains a "Lessons Learned" section, automatically opens an issue on the template repo to propagate improvements
 4. **template-sync.yaml** - Daily sync from template with version tracking, deletion detection, and conflict resolution via `@claude`
 
@@ -108,8 +108,8 @@ This template uses the official [claude-code-action](https://github.com/anthropi
 
 The automation has built-in safeguards against infinite token spend:
 
-- **Stop hook**: Blocks session completion if checks fail, but gives up after 3 attempts (configurable via `MAX_STOP_RETRIES` env var). After exhausting retries, it approves with a warning.
-- **CI failure comments**: Each workflow gets max 2 `@claude` pings. After all tracked workflows exhaust their attempts, the PR is labeled `needs-human-review` and Claude is no longer pinged.
+- **Stop hook** (`verify_ci.py`): Blocks session completion if checks fail, but gives up after 3 attempts (configurable via `MAX_STOP_RETRIES` env var). After exhausting retries, it approves with a warning. This is the **primary fix mechanism** — it runs in the interactive session with full context.
+- **CI failure tracking** (`track_ci_failures.py`): Notification-only. Tracks which workflows failed and how many times. After all tracked workflows exhaust their 2 attempts, labels the PR `needs-human-review`. Does not ping `@claude` — spawning context-free sessions to fix CI failures is unreliable.
 - **PostToolUse CI watcher**: `gh pr checks --watch` has a 5-minute timeout to prevent indefinite hangs.
 
 ### Setup Required
@@ -119,7 +119,7 @@ To let Claude start fixing your PRs after your CI fails, you need to [install th
 The automation will then:
 
 - Respond to `@claude` mentions in issues and PRs
-- Automatically fix CI failures on `claude/` branches (with retry limits)
+- Track CI failures on `claude/` branches and label for human review when stuck
 - Review code and answer questions about the codebase
 - Phone home improvements to the template repo when PRs are merged
 
