@@ -82,6 +82,7 @@ tests/            # Test files (create as needed)
 - Prefer throwing errors that "fail loudly" over logging warnings for critical issues
 - Un-nest conditionals where possible; combine related checks into single blocks
 - Create shared helpers when the same logic is needed in multiple places
+- Use descriptive variable names; don't shorten for brevity
 - In TypeScript, only use template literals if using variable substitution
 - Comments should describe what code does and why, never reference deleted code or what "used to be" there (e.g., don't write "Do NOT use X" referring to removed code)
 
