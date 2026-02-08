@@ -87,6 +87,7 @@ tests/            # Test files (create as needed)
 
 ### Testing
 
+- Never skip tests or modify them to be easy to pass, unless directly asked to
 - Write focused, non-duplicative tests
 - Parametrize tests for compactness while achieving high coverage
 - Prefer exact equality assertions over partial/contains checks—make tests as strict as possible
