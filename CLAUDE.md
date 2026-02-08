@@ -24,14 +24,24 @@ Configure additional scripts in `package.json` as needed:
 
 Git hooks are configured automatically after `pnpm install`.
 
-Commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+**IMPORTANT: All commits MUST use [Conventional Commits](https://www.conventionalcommits.org/) format.** The `commit-msg` hook enforces this via commitlint. Commits that don't follow this format will be rejected.
+
+Format: `<type>(<optional scope>): <description>`
+
+Allowed types:
 
 - `feat:` New features
 - `fix:` Bug fixes
 - `refactor:` Code refactoring
-- `docs:` Documentation
-- `test:` Test changes
-- `chore:` Maintenance
+- `docs:` Documentation changes
+- `test:` Adding or updating tests
+- `chore:` Maintenance, dependency updates, tooling
+- `ci:` CI/CD configuration changes
+- `style:` Formatting changes (no code logic changes)
+- `perf:` Performance improvements
+- `build:` Build system changes
+
+Use a `!` after the type/scope to indicate a breaking change (e.g., `feat!: remove legacy API`).
 
 ## Pull Request Requirements
 
