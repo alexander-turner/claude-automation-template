@@ -14,7 +14,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash(git push*|gh pr create*|gh api */pulls*)",
+        "matcher": "Bash(git push*|gh pr create*)",
         "hooks": [
           {
             "type": "command",
@@ -25,11 +25,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash(git push*|gh pr create*|gh api */pulls*)",
+        "matcher": "Bash(git push*|gh pr create*)",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== WAITING FOR CI ===' && sleep 10 && timeout 300 gh pr checks ${GH_REPO:+--repo \"$GH_REPO\"} --watch 2>&1 || echo 'CI watch timed out or no PR found — check status manually'",
+            "command": "echo '=== WAITING FOR CI ===' && sleep 10 && timeout 300 gh pr checks --watch 2>&1 || echo 'CI watch timed out or no PR found — check status manually'",
             "timeout": 360
           }
         ]
