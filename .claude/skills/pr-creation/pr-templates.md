@@ -2,8 +2,42 @@
 
 ## PR Creation Command
 
+First, check if a PR already exists for the current branch:
+
+```bash
+CURRENT_BRANCH=$(git branch --show-current)
+EXISTING_PR=$(gh pr list --repo "$GH_REPO" --head "$CURRENT_BRANCH" --json number --jq '.[0].number' 2>/dev/null)
+```
+
+If `EXISTING_PR` is non-empty, update the existing PR with `gh pr edit` instead of creating a new one.
+
+### Standard (direct GitHub remote)
+
 ```bash
 gh pr create --title "<type>: <description>" --body "$(cat <<'EOF'
+<body>
+EOF
+)"
+```
+
+### Proxy environment fallback (when `GH_REPO` is set)
+
+In Claude Code web sessions, git remotes use a local proxy URL that `gh pr create` cannot resolve. When `gh pr create` fails with "could not resolve remote", use the GitHub API directly:
+
+```bash
+gh api "repos/$GH_REPO/pulls" \
+  -f title="<type>: <description>" \
+  -f head="$CURRENT_BRANCH" \
+  -f base="<base-branch>" \
+  -f body="$(cat <<'EOF'
+<body>
+EOF
+)"
+```
+
+### PR Body Template
+
+```
 ## Summary
 <1-3 bullet points describing what changed and why>
 
@@ -20,8 +54,6 @@ gh pr create --title "<type>: <description>" --body "$(cat <<'EOF'
  "Template sync should handle Z edge case">
 
 https://claude.ai/code/session_...
-EOF
-)"
 ```
 
 ## Title Format
@@ -46,7 +78,7 @@ Use imperative mood with a Conventional Commits type prefix:
 ## Updating PR Description After Additional Commits
 
 ```bash
-gh pr edit --body "$(cat <<'EOF'
+gh pr edit <pr-number> --repo "$GH_REPO" --body "$(cat <<'EOF'
 ## Summary
 <Updated summary reflecting all changes>
 

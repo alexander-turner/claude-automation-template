@@ -86,7 +86,15 @@ Run the project's test/lint/typecheck commands (see [pr-templates.md](pr-templat
 You MUST read [pr-templates.md](pr-templates.md) for the PR template and formatting guidelines before this step.
 
 1. Push the branch: `git push -u origin HEAD`
-2. Create the PR using `gh pr create` with the template from the resource file
+2. Check if a PR already exists for the current branch:
+   ```bash
+   CURRENT_BRANCH=$(git branch --show-current)
+   EXISTING_PR=$(gh pr list --repo "$GH_REPO" --head "$CURRENT_BRANCH" --json number --jq '.[0].number' 2>/dev/null)
+   ```
+   If a PR already exists, update it with `gh pr edit` instead of creating a new one.
+3. Create the PR:
+   - **Try `gh pr create` first** (works when the remote is a standard GitHub URL)
+   - **If it fails** with "could not resolve remote" (common in Claude Code web sessions where remotes use a local proxy), fall back to `gh api` as shown in [pr-templates.md](pr-templates.md)
 
 After creating the PR, and after any subsequent fix commits, update the PR description with `gh pr edit --body "..."` to reflect the current state of all changes.
 
@@ -152,4 +160,6 @@ Provide the PR URL and confirm all CI checks have passed.
 - **Tests fail**: Fix the tests, don't skip them
 - **`gh` not authenticated**: Tell user to run `gh auth login` or set `GH_TOKEN`
 - **Push fails**: Check branch permissions and remote configuration
+- **`gh pr create` fails with "could not resolve remote"**: Use `gh api repos/$GH_REPO/pulls` instead (see [pr-templates.md](pr-templates.md))
+- **PR already exists (HTTP 422)**: Check for existing PRs first with `gh pr list --repo "$GH_REPO" --head "$(git branch --show-current)"`, then use `gh pr edit` to update
 - **No changes to PR**: Confirm with the user that work is committed
