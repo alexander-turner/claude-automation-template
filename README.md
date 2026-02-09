@@ -1,6 +1,19 @@
 # Claude Automation Template
 
-Pre-configured [Claude Code](https://docs.anthropic.com/en/docs/claude-code) automation with git hooks and GitHub Actions. Keeps your .claude up-to-date with this template repo.
+A GitHub template that makes [Claude Code](https://docs.anthropic.com/en/docs/claude-code) work reliably on your repositories. It wires up git hooks, CI workflows, and Claude session hooks so that Claude can autonomously fix code, create PRs, and respond to `@claude` mentions — with safeguards to prevent broken code from shipping or runaway token spend.
+
+## Why Use This
+
+**Without this template**, using Claude Code on a repo requires manually configuring hooks, writing CI workflows, and building guardrails against common failure modes (infinite retry loops, pushing broken code, inconsistent formatting).
+
+**With this template**, you get all of that out of the box:
+
+- **Pre-push verification** — Claude runs your build, lint, and type checks before every push
+- **Post-push CI watching** — Claude waits for CI to pass and gets told to fix failures (with a retry cap so it doesn't burn tokens forever)
+- **Enforced code quality** — Conventional Commits, Prettier formatting, and lint-staged run on every commit
+- **`@claude` GitHub integration** — mention Claude in issues or PR comments and it responds with full repo context
+- **Automatic template sync** — downstream repos receive improvements daily via PR, with conflict detection that preserves your customizations
+- **Multi-language support** — Node.js (pnpm), Python (uv/ruff/pytest), and shell (shfmt/shellcheck) work out of the box
 
 ## Quick Start
 
@@ -10,34 +23,59 @@ Pre-configured [Claude Code](https://docs.anthropic.com/en/docs/claude-code) aut
 git clone <your-repo-url> && cd <your-repo> && ./setup.sh
 ```
 
-To let Claude start fixing your PRs after your CI fails and to auto-sync this repo's files, you need to [install the Claude GitHub app](https://github.com/apps/claude).
+Then [install the Claude GitHub app](https://github.com/apps/claude) to enable `@claude` mentions and CI failure tracking.
 
 ## What's Included
 
-| Component            | Purpose                                              |
-| -------------------- | ---------------------------------------------------- |
-| `.claude/`           | Claude Code session setup + PR creation skill        |
-| `.hooks/`            | Pre-commit (lint-staged) + commit message validation |
-| `.github/workflows/` | CI, Dependabot auto-merge, failure notifications     |
+### Git Hooks (`.hooks/`)
+
+| Hook         | What it does                                             |
+| ------------ | -------------------------------------------------------- |
+| `pre-commit` | Runs lint-staged (Prettier, shfmt, ruff) on staged files |
+| `commit-msg` | Validates Conventional Commits format via commitlint     |
+
+### Claude Session Hooks (`.claude/`)
+
+| Hook         | What it does                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| SessionStart | Installs tools (gh, shfmt, shellcheck), configures git, installs dependencies                    |
+| PreToolUse   | Runs build/lint/typecheck before `git push` or `gh pr create`                                    |
+| PostToolUse  | Watches `gh pr checks` for up to 5 minutes after push                                            |
+| Stop         | Blocks session completion if tests/lint/typecheck fail; gives up after 3 attempts to avoid loops |
+
+### Claude Skills (`.claude/skills/`)
+
+| Skill                  | What it does                                                           |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `pr-creation`          | Self-critique workflow before PR submission, then watches CI           |
+| `conventional-commits` | Guides Claude through properly formatted commits with secret detection |
+
+### GitHub Actions (`.github/workflows/`)
+
+| Workflow                        | What it does                                                          |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `claude.yaml`                   | Responds to `@claude` mentions in issues/PRs                          |
+| `comment-on-failed-checks.yaml` | Tracks CI failures on `claude/` branches, labels `needs-human-review` |
+| `template-sync.yaml`            | Daily sync from template repo with conflict detection                 |
+| `phone-home.yaml`               | Propagates "Lessons Learned" from merged PRs back to the template     |
+| `node-tests.yaml`               | Runs `pnpm test` (skips gracefully if unconfigured)                   |
+| `lint.yaml`                     | Runs `pnpm lint` and `pnpm check` (skips gracefully if unconfigured)  |
+| `format-check.yaml`             | Runs Prettier format check                                            |
+| `dependabot-auto-merge.yaml`    | Auto-merges minor/patch Dependabot PRs                                |
 
 ## Customization
 
-Edit these files when ready:
+After creating your repo from the template, configure these files:
 
-- `CLAUDE.md` - Project details for Claude
-- `package.json` - Configure dev/build/test/lint scripts
-- `.github/workflows/comment-on-failed-checks.yaml` - Add your workflow names
+- **`CLAUDE.md`** — Add your project-specific context for Claude
+- **`package.json`** — Wire up your `dev`, `build`, `test`, `lint`, and `check` scripts
+- **`.github/workflows/comment-on-failed-checks.yaml`** — Add your CI workflow names
 
-CI workflows automatically skip unconfigured scripts, so you won't get failures on first push.
+Unconfigured scripts are skipped gracefully — no failures on first push.
 
 ## Automatic Updates
 
-Template updates sync daily at 9am UTC. You can also trigger manually:
-
-1. Go to Actions → "Sync from Template"
-2. Click "Run workflow"
-
-A PR will be created with any updates for you to review.
+Template improvements sync daily at 9am UTC. You can also trigger manually from Actions → "Sync from Template". Changes arrive as a PR for you to review, and local customizations are preserved.
 
 ## Requirements
 
