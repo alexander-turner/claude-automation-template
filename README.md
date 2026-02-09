@@ -8,6 +8,7 @@ A GitHub template that makes [Claude Code](https://docs.anthropic.com/en/docs/cl
 
 **With this template**, you get all of that out of the box:
 
+- **A solid starting CLAUDE.md** — upholds high code quality standards.
 - **Pre-push verification** — Claude runs your build, lint, and type checks before every push
 - **Post-push CI watching** — Claude waits for CI to pass and gets told to fix failures (with a retry cap so it doesn't burn tokens forever)
 - **Enforced code quality** — Conventional Commits, Prettier formatting, and lint-staged run on every commit
@@ -76,8 +77,3 @@ Unconfigured scripts are skipped gracefully — no failures on first push.
 ## Automatic Updates
 
 Template improvements sync daily at 9am UTC. You can also trigger manually from Actions → "Sync from Template". Changes arrive as a PR for you to review, and local customizations are preserved.
-
-## Requirements
-
-- Node.js 18+
-- Git 2.9+
