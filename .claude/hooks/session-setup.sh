@@ -60,7 +60,7 @@ webi_install_if_missing jq
 
 # Install shellcheck for shell script linting (requires root)
 if ! command -v shellcheck &>/dev/null && is_root; then
-	if ! { apt-get update -qq && apt-get install -y -qq shellcheck; } 2>/dev/null; then
+	if ! { apt-get update -qq && apt-get install -y -qq shellcheck; }; then
 		warn "Failed to install shellcheck"
 	fi
 fi
@@ -116,7 +116,7 @@ fi
 # Set gh's default repo so commands like `gh pr create` work even when
 # the git remote is a local proxy URL that gh can't resolve.
 if [ -n "${GH_REPO:-}" ] && command -v gh &>/dev/null; then
-	gh repo set-default "$GH_REPO" 2>/dev/null || warn "Failed to set default repo for gh"
+	gh repo set-default "$GH_REPO" || warn "Failed to set default repo for gh"
 fi
 
 #######################################
@@ -136,7 +136,7 @@ fi
 
 # Install Python dependencies if uv.lock exists
 if [ -f "$PROJECT_DIR/uv.lock" ] && command -v uv &>/dev/null; then
-	uv sync --quiet 2>/dev/null || warn "Failed to sync Python dependencies"
+	uv sync --quiet || warn "Failed to sync Python dependencies"
 	# Add .venv/bin to PATH so Python tools (autoflake, isort, autopep8, etc.)
 	# installed by uv sync are available to lint-staged and other commands
 	if [ -d "$PROJECT_DIR/.venv/bin" ]; then
