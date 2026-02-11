@@ -77,3 +77,7 @@ Unconfigured scripts are skipped gracefully — no failures on first push.
 ## Automatic Updates
 
 Template improvements sync daily at 9am UTC. You can also trigger manually from Actions → "Sync from Template". Changes arrive as a PR for you to review, and local customizations are preserved.
+
+### `TEMPLATE_SYNC_TOKEN` Setup
+
+The template sync workflow pushes changes to `.github/workflows/` files, which GitHub requires the `workflow` scope for. Create a classic Personal Access Token with `repo` and `workflow` scopes, then add it as a repository secret named `TEMPLATE_SYNC_TOKEN`. Without the `workflow` scope, the sync will fail when trying to update workflow files.
