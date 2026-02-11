@@ -51,7 +51,7 @@ webi_install_if_missing shfmt
 webi_install_if_missing gh
 webi_install_if_missing jq
 if ! command -v shellcheck &>/dev/null && is_root; then
-	{ apt-get update -qq && apt-get install -y -qq shellcheck; } 2>/dev/null || warn "Failed to install shellcheck"
+	{ apt-get update -qq && apt-get install -y -qq shellcheck; } || warn "Failed to install shellcheck"
 fi
 
 #######################################
