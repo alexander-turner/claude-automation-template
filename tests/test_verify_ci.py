@@ -71,7 +71,7 @@ class TestRunCheck:
         mock_subprocess["pnpm test"] = completed(1, stderr="FAIL src/foo.test.ts")
         passed, output = _run_check("tests", "pnpm test")
         assert passed is False
-        assert "=== tests ===" in output
+        assert "=== tests FAILED ===" in output
         assert "FAIL src/foo.test.ts" in output
 
 
