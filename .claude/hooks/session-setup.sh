@@ -29,7 +29,6 @@ uv_install_if_missing() {
 webi_install_if_missing() {
 	local cmd="$1"
 	if ! command -v "$cmd" &>/dev/null; then
-		echo "Installing $cmd..."
 		curl -sS "https://webi.sh/$cmd" | sh >/dev/null 2>&1 || warn "Failed to install $cmd"
 	fi
 }
@@ -47,22 +46,12 @@ fi
 # Tool installation (optional - warn on failure)
 #######################################
 
-echo "Installing tools..."
-
-# Install shfmt for shell script formatting
+# Install tools quietly — only warn on failure
 webi_install_if_missing shfmt
-
-# Install GitHub CLI for PR workflows
 webi_install_if_missing gh
-
-# Install jq for JSON processing (used by hooks)
 webi_install_if_missing jq
-
-# Install shellcheck for shell script linting (requires root)
 if ! command -v shellcheck &>/dev/null && is_root; then
-	if ! { apt-get update -qq && apt-get install -y -qq shellcheck; }; then
-		warn "Failed to install shellcheck"
-	fi
+	{ apt-get update -qq && apt-get install -y -qq shellcheck; } 2>/dev/null || warn "Failed to install shellcheck"
 fi
 
 #######################################
@@ -106,7 +95,6 @@ if [ -z "${GH_REPO:-}" ]; then
 		GH_REPO="${BASH_REMATCH[1]}"
 		GH_REPO="${GH_REPO%.git}"
 		export GH_REPO
-		echo "Detected GitHub repo from proxy remote: $GH_REPO"
 		if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
 			echo "export GH_REPO=\"$GH_REPO\"" >>"$CLAUDE_ENV_FILE"
 		fi
@@ -123,10 +111,7 @@ fi
 # Project dependencies
 #######################################
 
-# Always run install to ensure node_modules is in sync with lockfile
-# (node_modules can be stale even when the lockfile is correct)
 if [ -f "$PROJECT_DIR/package.json" ]; then
-	echo "Installing Node dependencies..."
 	if command -v pnpm &>/dev/null; then
 		pnpm install --silent || warn "Failed to install Node dependencies"
 	elif command -v npm &>/dev/null; then
@@ -134,11 +119,8 @@ if [ -f "$PROJECT_DIR/package.json" ]; then
 	fi
 fi
 
-# Install Python dependencies if uv.lock exists
 if [ -f "$PROJECT_DIR/uv.lock" ] && command -v uv &>/dev/null; then
 	uv sync --quiet || warn "Failed to sync Python dependencies"
-	# Add .venv/bin to PATH so Python tools (autoflake, isort, autopep8, etc.)
-	# installed by uv sync are available to lint-staged and other commands
 	if [ -d "$PROJECT_DIR/.venv/bin" ]; then
 		export PATH="$PROJECT_DIR/.venv/bin:$PATH"
 		if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
@@ -148,7 +130,5 @@ if [ -f "$PROJECT_DIR/uv.lock" ] && command -v uv &>/dev/null; then
 fi
 
 if [ "$SETUP_WARNINGS" -gt 0 ]; then
-	echo "Session setup complete with $SETUP_WARNINGS warning(s)" >&2
-else
-	echo "Session setup complete"
+	echo "Setup done with $SETUP_WARNINGS warning(s) — see above" >&2
 fi

@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== WAITING FOR CI ===' && sleep 10 && timeout 300 gh pr checks --watch 2>&1 || echo 'CI watch timed out or no PR found — check status manually'",
+            "command": "sleep 10 && output=$(timeout 300 gh pr checks --watch 2>&1); rc=$?; if [ $rc -eq 0 ]; then echo 'CI passed'; else echo \"CI failed (exit $rc):\"; echo \"$output\" | tail -20; fi",
             "timeout": 360
           }
         ]
