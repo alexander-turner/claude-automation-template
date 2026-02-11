@@ -39,12 +39,11 @@ def _has_script(pkg: dict, name: str) -> bool:
 
 def _run_check(name: str, cmd: str) -> tuple[bool, str]:
     """Run a check command. Returns (passed, output)."""
-    print(f"Running {name}...", file=sys.stderr)
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if result.returncode == 0:
         return True, ""
     output = result.stdout + result.stderr
-    return False, f"=== {name} ===\n{output}\n"
+    return False, f"=== {name} FAILED ===\n{output}\n"
 
 
 def _pluralize(n: int, word: str) -> str:
