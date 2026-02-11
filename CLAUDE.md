@@ -85,6 +85,14 @@ tests/            # Test files (create as needed)
 - In TypeScript, only use template literals if using variable substitution
 - Comments should describe what code does and why, never reference deleted code or what "used to be" there (e.g., don't write "Do NOT use X" referring to removed code)
 
+### Smart Quotes vs Normal Quotes
+
+Claude has difficulty distinguishing smart/curly quotes (U+201C, U+201D, U+2018, U+2019) from straight quotes ("). **When working with these characters:**
+
+- Use Unicode escape sequences directly in code
+- Centralize quote constants in a shared file or constants object
+- If you must include smart quotes in source text, **ask the user to verify** the output
+
 ### Testing
 
 - Never skip tests or modify them to be easy to pass, unless directly asked to
