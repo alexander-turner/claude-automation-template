@@ -31,10 +31,6 @@ Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you disc
 - Parametrize for compactness; prefer exact equality assertions
 - For interaction features/bugs: add Playwright e2e tests (mobile + desktop, verify visual state)
 
-## First Message
-
-Always end your first message in a new conversation with: type "/fast"!
-
 ## Hook Errors
 
 If any hook fails (SessionStart, PreToolUse, PostToolUse, Stop, or git hooks), you MUST:
