@@ -27,14 +27,13 @@ Do **NOT** use for:
 
 ## Workflow
 
-### 1. Identify Current PR
+### 1. Verify PR Exists and Is Open
 
 ```bash
-# Get PR for current branch
 gh pr view --json number,state,title,url
 ```
 
-Verify the PR is **open**. If merged or closed, ask the user what to do.
+If no PR exists, ask if they want to create one (`/pr-creation`). If merged or closed, ask what to do.
 
 ### 2. Make Changes
 
@@ -42,11 +41,10 @@ Implement the requested updates following the user's instructions.
 
 ### 3. Commit Changes
 
-Use conventional commits format (activate `/commit` skill if multiple files):
+Use the `/commit` skill to create conventional commits:
 
 ```bash
-git add <files>
-git commit -m "fix: address review feedback on validation"
+/commit
 ```
 
 ### 4. Push Updates
@@ -55,53 +53,26 @@ git commit -m "fix: address review feedback on validation"
 git push
 ```
 
-### 5. Update PR Description (Optional)
-
-If changes significantly affect the PR scope or the user requests it:
+### 5. Verify CI (with 5-minute timeout)
 
 ```bash
-gh pr edit --body "$(cat <<'EOF'
-## Summary
-Updated description...
-
-## Changes in this update
-- Fixed validation bug
-- Added error handling
-
-## Test plan
-[...]
-EOF
-)"
+timeout 5m gh pr checks --watch || true
 ```
 
-### 6. Verify CI
+The stop hook (`verify_ci.py`) will automatically block completion if CI fails. If checks fail, fix issues and repeat steps 3-5.
 
-```bash
-gh pr checks --watch
-```
-
-If checks fail, fix the issues and repeat steps 3-6.
-
-### 7. Report Result
+### 6. Report Result
 
 Confirm the PR is updated and provide the URL.
 
-## Examples
+## Example
 
 **User:** "Fix the type error in the PR"
 
-**Actions:**
-
-1. Run `gh pr view` → PR #42 is open
-2. Fix the type error in `src/utils.ts`
-3. Commit: `fix: correct return type in parseConfig`
-4. Push: `git push`
-5. Watch CI: `gh pr checks --watch` → all pass
-6. Report: "Updated PR #42 with type fix: https://github.com/org/repo/pull/42"
+**Actions:** Verify PR exists → Fix type error → `/commit` → Push → Verify CI → Report URL
 
 ## Error Handling
 
 - **No PR for branch**: Ask if they want to create one (`/pr-creation`)
-- **PR is merged**: Don't modify it; create a new PR if needed
-- **Push fails**: Check branch protection rules
-- **CI fails**: Fix issues and push again
+- **PR merged/closed**: Ask user what to do (don't modify merged PRs)
+- **CI fails**: Fix issues and push again (stop hook enforces this)
