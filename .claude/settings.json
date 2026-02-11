@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sleep 10 && output=$(timeout 300 gh pr checks --watch 2>&1); rc=$?; if [ $rc -eq 0 ]; then echo 'CI passed'; else echo \"CI failed (exit $rc):\"; echo \"$output\" | tail -20; fi",
+            "command": "f=/tmp/claude-ci-watch.log; sleep 10 && timeout 300 gh pr checks --watch >\"$f\" 2>&1; rc=$?; if [ $rc -eq 0 ]; then echo 'CI passed'; else echo \"CI failed (exit $rc) — see $f\"; tail -20 \"$f\"; fi",
             "timeout": 360
           }
         ]
