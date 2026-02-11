@@ -89,10 +89,9 @@ tests/            # Test files (create as needed)
 
 Claude has difficulty distinguishing smart/curly quotes (U+201C, U+201D, U+2018, U+2019) from straight quotes ("). **When working with these characters:**
 
-- Use Unicode escape sequences directly in code: `const quote = '\u201C'` (U+201C for left double quote) or `'\u2018'` (U+2018 for left single quote)
-- Centralize quote constants in a shared file or constants object rather than duplicating them throughout the codebase
-- If you must include smart quotes in source text (e.g., in comments, strings, or configuration), **ask the user to verify** the output — visually inspect that the correct Unicode character was used
-- When in doubt, use straight quotes (`"` and `'`) and let the formatter or output system apply smart quotes if needed
+- Use Unicode escape sequences directly in code
+- Centralize quote constants in a shared file or constants object
+- If you must include smart quotes in source text, **ask the user to verify** the output
 
 ### Testing
 
