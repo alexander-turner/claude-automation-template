@@ -53,10 +53,10 @@ Use the `/commit` skill to create conventional commits:
 git push
 ```
 
-### 5. Verify CI (with 5-minute timeout)
+### 5. Verify CI (with 15-minute timeout)
 
 ```bash
-timeout 5m gh pr checks --watch || true
+timeout 15m gh pr checks --watch || true
 ```
 
 The stop hook (`verify_ci.py`) will automatically block completion if CI fails. If checks fail, fix issues and repeat steps 3-5.
