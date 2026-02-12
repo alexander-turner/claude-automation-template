@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This project uses the Claude automation template with pre-configured git hooks and CI workflows.
+
 ## Commands
 
 ```bash
@@ -31,10 +33,27 @@ Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you disc
 - Parametrize for compactness; prefer exact equality assertions
 - For interaction features/bugs: add Playwright e2e tests (mobile + desktop, verify visual state)
 
+## GitHub Integration & Automation
+
+This template uses the [claude-code-action](https://github.com/anthropics/claude-code-action) for GitHub automation:
+
+- **claude.yaml** - Responds to `@claude` mentions in issues/PRs
+- **comment-on-failed-checks.yaml** - Tracks CI failures, labels stuck PRs for human review
+- **phone-home.yaml** - Propagates "Lessons Learned" to the template repo on merge
+- **template-sync.yaml** - Daily sync from template repo with conflict resolution
+
+### Retry and Bailout Behavior
+
+- **Stop hook** (`verify_ci.py`): Blocks completion if checks fail, gives up after 3 attempts (configurable via `MAX_STOP_RETRIES`). After retries exhausted, approves with warning.
+- **CI tracking**: Labels PR `needs-human-review` after workflows fail 2x. Does not spawn new sessions.
+- **Session timeout**: `gh pr checks --watch` has 5-minute timeout to prevent hangs.
+
+To enable Claude to fix your PRs: [install the Claude GitHub app](https://github.com/apps/claude)
+
 ## Hook Errors
 
 If any hook fails (SessionStart, PreToolUse, PostToolUse, Stop, or git hooks), you MUST:
 
 1. **Warn prominently** — identify which hook, the error output, and files involved
 2. **Propose a fix PR** — check `.claude/hooks/` or `.hooks/` for the source
-3. **Assess scope** — repo-specific issues: fix here. General issues (bugs in hook scripts, missing edge cases): also tell the user to PR the [template repo](https://github.com/alexander-turner/claude-automation-template)
+3. **Assess scope** — repo-specific issues: fix here. General issues: also PR the [template repo](https://github.com/alexander-turner/claude-automation-template)
