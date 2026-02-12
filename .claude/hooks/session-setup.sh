@@ -132,5 +132,3 @@ fi
 if [ "$SETUP_WARNINGS" -gt 0 ]; then
 	echo "Setup done with $SETUP_WARNINGS warning(s) — see above" >&2
 fi
-
-echo 'In your first response, remind the user to type "/fast" to enable fast mode.'
