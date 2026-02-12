@@ -37,4 +37,4 @@ If any hook fails (SessionStart, PreToolUse, PostToolUse, Stop, or git hooks), y
 
 1. **Warn prominently** — identify which hook, the error output, and files involved
 2. **Propose a fix PR** — check `.claude/hooks/` or `.hooks/` for the source
-3. **Assess scope** — repo-specific issues: fix here. General issues (bugs in hook scripts, missing edge cases): also tell the user to PR the [template repo](https://github.com/alexander-turner/claude-automation-template)
+3. **Assess scope** — repo-specific issues: fix here. General issues: also PR the [template repo](https://github.com/alexander-turner/claude-automation-template)
