@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This project uses the Claude automation template with pre-configured git hooks and CI workflows.
-
 ## Commands
 
 ```bash
@@ -32,15 +30,6 @@ Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you disc
 - Never skip or weaken tests unless asked
 - Parametrize for compactness; prefer exact equality assertions
 - For interaction features/bugs: add Playwright e2e tests (mobile + desktop, verify visual state)
-
-## GitHub Integration & Automation
-
-This template uses the [claude-code-action](https://github.com/anthropics/claude-code-action) for GitHub automation:
-
-- **claude.yaml** - Responds to `@claude` mentions in issues/PRs
-- **comment-on-failed-checks.yaml** - Tracks CI failures, labels stuck PRs for human review
-- **phone-home.yaml** - Propagates "Lessons Learned" to the template repo on merge
-- **template-sync.yaml** - Daily sync from template repo with conflict resolution
 
 ### Retry and Bailout Behavior
 
