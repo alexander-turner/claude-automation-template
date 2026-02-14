@@ -61,7 +61,7 @@ Before updating an existing PR (pushing new commits, editing the description, et
 3. Run `git log <base-branch>..HEAD --oneline` to see all commits
 4. Review the changed files to understand the scope
 
-### Step 2: Self-Critique 
+### Step 2: Self-Critique
 
 **Before creating the PR**, you MUST read [critique-prompt.md](critique-prompt.md) and launch a critique sub-agent using the Task tool:
 
