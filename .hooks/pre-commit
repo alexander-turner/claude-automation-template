@@ -4,6 +4,11 @@
 
 GIT_ROOT=$(git rev-parse --show-toplevel)
 
+# Add .venv/bin to PATH so Python tools installed in virtual environment are available
+if [ -d "$GIT_ROOT/.venv/bin" ]; then
+  export PATH="$GIT_ROOT/.venv/bin:$PATH"
+fi
+
 # Check if lint-staged is installed
 if [ ! -f "$GIT_ROOT/node_modules/.bin/lint-staged" ]; then
   echo "Warning: lint-staged not found. Run 'pnpm install' to enable pre-commit formatting." >&2

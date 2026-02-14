@@ -4,6 +4,11 @@
 
 git_root="$(git rev-parse --show-toplevel)"
 
+# Add .venv/bin to PATH so Python tools installed in virtual environment are available
+if [ -d "$git_root/.venv/bin" ]; then
+  export PATH="$git_root/.venv/bin:$PATH"
+fi
+
 # Run commitlint if available via pnpm or npm
 if command -v pnpm >/dev/null 2>&1 && [ -f "$git_root/node_modules/.bin/commitlint" ]; then
   pnpm exec commitlint --edit "$1" --config config/javascript/commitlint.config.js
