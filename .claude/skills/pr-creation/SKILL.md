@@ -56,7 +56,7 @@ Before updating an existing PR (pushing new commits, editing the description, et
 
 ### Step 1: Gather Context
 
-1. Identify the base branch (typically `main` or `master`)
+1. Identify the base branch by using `git symbolic-ref refs/remotes/origin/HEAD --short` 
 2. Run `git diff <base-branch>...HEAD` to see all changes
 3. Run `git log <base-branch>..HEAD --oneline` to see all commits
 4. Review the changed files to understand the scope
@@ -91,7 +91,7 @@ You MUST read [pr-templates.md](pr-templates.md) for the PR template and formatt
    EXISTING_PR=$(gh pr list --head "$(git branch --show-current)" --json number --jq '.[0].number' 2>/dev/null)
    ```
    If a PR already exists, update it with `gh pr edit` instead of creating a new one.
-3. Create the PR using `gh pr create` with the template from the resource file
+3. Create the PR using `gh pr create` with the template from the resource file. Make sure that you use the target branch
 
 After creating the PR, and after any subsequent fix commits, update the PR description with `gh pr edit --body "..."` to reflect the current state of all changes.
 
