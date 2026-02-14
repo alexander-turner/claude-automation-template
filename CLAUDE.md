@@ -24,6 +24,7 @@ Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you disc
 - Let exceptions propagate — only catch with a specific recovery action
 - Un-nest conditionals; combine related checks
 - Smart quotes (U+201C/U+201D/U+2018/U+2019): use Unicode escapes in code, centralize constants, ask user to verify output
+- Fail loudly with clear error messages, only remove error reporting if user asks specifically
 
 ## Testing
 
