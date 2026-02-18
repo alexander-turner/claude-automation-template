@@ -32,21 +32,9 @@ Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you disc
 - Parametrize for compactness; prefer exact equality assertions
 - For interaction features/bugs: add Playwright e2e tests (mobile + desktop, verify visual state)
 
-## Hooks
-
-**NEVER disable, bypass, or work around hooks.** This includes:
-
-- `chmod -x` on hook scripts
-- `--no-verify` on git commands
-- `git config --unset core.hooksPath` or redirecting it
-- Temporarily renaming, moving, or emptying hook files
-- Any other technique that prevents a hook from running
-
-If a hook fails, **tell the user** what failed and why, then fix the underlying issue. The hook is doing its job — the code needs to satisfy it, not the other way around.
-
 ### Hook Errors
 
-If any hook fails (SessionStart, PreToolUse, PostToolUse, Stop, or git hooks), you MUST:
+**NEVER disable, bypass, or work around hooks.** If a hook fails, **tell the user** what failed and why, then fix the underlying issue. If any hook fails (SessionStart, PreToolUse, PostToolUse, Stop, or git hooks), you MUST:
 
 1. **Warn prominently** — identify which hook, the error output, and files involved
 2. **Propose a fix PR** — check `.claude/hooks/` or `.hooks/` for the source
