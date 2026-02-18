@@ -71,7 +71,7 @@ class TestRunCheck:
         mock_subprocess["pnpm test"] = completed(1, stderr="FAIL src/foo.test.ts")
         passed, output = _run_check("tests", "pnpm test")
         assert passed is False
-        assert "=== tests ===" in output
+        assert "=== tests FAILED ===" in output
         assert "FAIL src/foo.test.ts" in output
 
 
@@ -228,7 +228,9 @@ class TestPythonChecks:
         # Verify all subprocess calls used the uv prefix
         for call in mock_subprocess.calls:
             cmd = call[0][0] if call[0] else call[1].get("args", "")
-            assert "uv run" in cmd, f"Expected 'uv run' prefix in: {cmd}"
+            # Handle both list (from shlex.split) and string formats
+            cmd_str = " ".join(cmd) if isinstance(cmd, list) else cmd
+            assert "uv run" in cmd_str, f"Expected 'uv run' prefix in: {cmd_str}"
 
     @pytest.mark.parametrize(
         ("failing_cmd", "expected_name"),

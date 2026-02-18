@@ -76,4 +76,4 @@ Unconfigured scripts are skipped gracefully — no failures on first push.
 
 ## Automatic Updates
 
-Template improvements sync daily at 9am UTC. You can also trigger manually from Actions → "Sync from Template". Changes arrive as a PR for you to review, and local customizations are preserved.
+Template improvements sync daily at 9am UTC. You can also trigger manually from Actions → "Sync from Template". Changes arrive as a PR for you to review, and local customizations are preserved. **Make sure to create a fine-grained access token with read + write `contents`, `workflow`, and `pull requests` scopes. Then add it as a repository secret named `TEMPLATE_SYNC_TOKEN`.**
