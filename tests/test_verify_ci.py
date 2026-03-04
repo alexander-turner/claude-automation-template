@@ -23,8 +23,12 @@ class TestRetryFile:
     def test_different_dirs_differ(self) -> None:
         assert _retry_file("/a") != _retry_file("/b")
 
-    def test_lives_in_tmp(self) -> None:
-        assert str(_retry_file("/x")).startswith("/tmp/claude-stop-attempts-")
+    def test_lives_in_user_scoped_dir(self) -> None:
+        import os
+
+        path = str(_retry_file("/x"))
+        assert f"/claude-stop-{os.getuid()}/" in path
+        assert path.startswith("/tmp/")
 
 
 # -----------------------------------------------------------------------
@@ -84,6 +88,11 @@ class TestMainApprove:
     def test_no_config_files(self, project_dir, mock_subprocess, capsys) -> None:
         main()
         assert parse_json_output(capsys)["decision"] == "approve"
+
+    def test_no_config_warns(self, project_dir, mock_subprocess, capsys) -> None:
+        main()
+        captured = capsys.readouterr()
+        assert "No checks configured" in captured.err
 
     def test_all_pass(self, project_dir, package_json, mock_subprocess, capsys) -> None:
         package_json({"test": "jest", "lint": "eslint ."})

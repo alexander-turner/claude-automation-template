@@ -56,7 +56,7 @@ Before updating an existing PR (pushing new commits, editing the description, et
 
 ### Step 1: Gather Context
 
-1. The base branch is in the env variable `$CLAUDE_CODE_BASE_REF` 
+1. The base branch is in the env variable `$CLAUDE_CODE_BASE_REF`
 2. Run `git diff <base-branch>...HEAD` to see all changes
 3. Run `git log <base-branch>..HEAD --oneline` to see all commits
 4. Review the changed files to understand the scope

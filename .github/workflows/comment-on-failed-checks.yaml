@@ -7,10 +7,12 @@ name: Comment on Failed Checks
 on:
   workflow_run:
     workflows:
-      # Add your workflow names here
-      - "Node tests"
-      - "Lint"
-      - "Format check"
+      # IMPORTANT: These names MUST exactly match the `name:` field in the
+      # corresponding workflow files. If you rename a workflow, update this
+      # list too, or the failure tracker will silently stop working for it.
+      - "Node tests" # .github/workflows/node-tests.yaml
+      - "Lint" # .github/workflows/lint.yaml
+      - "Format check" # .github/workflows/format-check.yaml
       # - "Python tests"
       # - "Type check"
     types:
