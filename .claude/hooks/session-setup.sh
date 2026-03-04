@@ -71,8 +71,6 @@ fi
 PROJ_HASH=$(printf '%s' "$PROJECT_DIR" | sha256sum | cut -c1-16)
 RETRY_DIR="/tmp/claude-stop-$(id -u)"
 rm -f "${RETRY_DIR}/attempts-${PROJ_HASH}"
-# Also clean up legacy location from older versions
-rm -f "/tmp/claude-stop-attempts-${PROJ_HASH}"
 
 #######################################
 # Git setup

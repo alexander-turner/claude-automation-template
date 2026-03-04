@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import shutil
 
 import pytest
@@ -24,8 +25,6 @@ class TestRetryFile:
         assert _retry_file("/a") != _retry_file("/b")
 
     def test_lives_in_user_scoped_dir(self) -> None:
-        import os
-
         path = str(_retry_file("/x"))
         assert f"/claude-stop-{os.getuid()}/" in path
         assert path.startswith("/tmp/")
