@@ -26,10 +26,18 @@ uv_install_if_missing() {
 }
 
 # Install a command via webi if missing
+# Downloads the installer to a temp file first (avoid piping curl to sh directly)
 webi_install_if_missing() {
 	local cmd="$1"
 	if ! command -v "$cmd" &>/dev/null; then
-		curl -sS "https://webi.sh/$cmd" | sh >/dev/null 2>&1 || warn "Failed to install $cmd"
+		local installer
+		installer=$(mktemp "${TMPDIR:-/tmp}/webi-${cmd}-XXXXXX.sh")
+		if curl -fsSL "https://webi.sh/$cmd" -o "$installer" 2>/dev/null; then
+			sh "$installer" >/dev/null 2>&1 || warn "Failed to install $cmd"
+		else
+			warn "Failed to download installer for $cmd"
+		fi
+		rm -f "$installer"
 	fi
 }
 
@@ -61,7 +69,8 @@ fi
 # Remove stop-hook retry counter for THIS project so a new session starts fresh
 # (keyed on project dir hash, matching verify_ci.py's _retry_file)
 PROJ_HASH=$(printf '%s' "$PROJECT_DIR" | sha256sum | cut -c1-16)
-rm -f "/tmp/claude-stop-attempts-${PROJ_HASH}"
+RETRY_DIR="/tmp/claude-stop-$(id -u)"
+rm -f "${RETRY_DIR}/attempts-${PROJ_HASH}"
 
 #######################################
 # Git setup
