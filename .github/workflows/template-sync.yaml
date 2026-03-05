@@ -163,7 +163,7 @@ jobs:
               diff -u "$rel_path" "$template_file" | head -200 || true
               echo "\`\`\`"
               echo ""
-              echo "**Full diff:** Run \`git diff HEAD -- $rel_path\` locally to see the complete changes"
+              echo "**Full diff:** Fetch this PR branch locally and run \`diff\` against the template to see the complete changes"
               echo "</details>"
               echo ""
             } >> /tmp/conflict_report.md

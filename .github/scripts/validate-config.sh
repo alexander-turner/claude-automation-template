@@ -18,7 +18,8 @@ if [ -f .claude/settings.json ]; then
   while IFS= read -r cmd; do
     [ -z "$cmd" ] && continue
     resolved=$(echo "$cmd" | sed 's|"\$CLAUDE_PROJECT_DIR"/\?|./|g; s|"||g; s|\$CLAUDE_PROJECT_DIR/\?|./|g')
-    for token in $resolved; do
+    read -ra tokens <<<"$resolved"
+    for token in "${tokens[@]}"; do
       case "$token" in
       ./.claude/hooks/* | ./.hooks/*)
         if [ ! -f "$token" ]; then

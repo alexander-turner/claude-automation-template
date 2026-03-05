@@ -57,7 +57,8 @@ if [ -f .claude/settings.json ]; then
     # Resolve $CLAUDE_PROJECT_DIR to . and strip quotes
     resolved=$(echo "$cmd" | sed 's|"\$CLAUDE_PROJECT_DIR"/\?|./|g; s|"||g; s|\$CLAUDE_PROJECT_DIR/\?|./|g')
     # Extract file paths that reference hook scripts
-    for token in $resolved; do
+    read -ra tokens <<<"$resolved"
+    for token in "${tokens[@]}"; do
       case "$token" in
       ./.claude/hooks/* | ./.hooks/*)
         if [ -f "$token" ]; then
@@ -80,7 +81,6 @@ required_tools="pnpm prettier commitlint jq gh"
 optional_tools="shfmt shellcheck ruff uv"
 
 for tool in $required_tools; do
-  bin="$tool"
   # Check node_modules/.bin for Node tools
   if [ -x "node_modules/.bin/$tool" ]; then
     pass "$tool available (node_modules)"
@@ -113,7 +113,7 @@ done
 echo "Checking package.json scripts..."
 configured=0
 for script in test lint check; do
-  value=$(node -e "const p=require('./package.json'); console.log(p.scripts?.['$script'] || '')" 2>/dev/null || true)
+  value=$(jq -r ".scripts[\"$script\"] // empty" package.json 2>/dev/null || true)
   if [ -n "$value" ] && ! echo "$value" | grep -q "ERROR: Configure"; then
     pass "Script '$script' is configured"
     configured=$((configured + 1))
