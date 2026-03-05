@@ -126,8 +126,8 @@ fi
 # 7. Workflow name consistency
 echo "Checking workflow name consistency..."
 if [ -f .github/workflows/comment-on-failed-checks.yaml ]; then
-  # Extract uncommented workflow names from the workflows: array
-  wf_names=$(sed -n '/workflows:/,/types:/{/^[[:space:]]*- /{ /^[[:space:]]*#/!{ s/^[[:space:]]*-[[:space:]]*//; s/^"//; s/"$//; s/'"'"'//g; p; }}}' .github/workflows/comment-on-failed-checks.yaml)
+  # Extract workflow names, stripping inline YAML comments (e.g. - "Name" # path)
+  wf_names=$(sed -n '/workflows:/,/types:/{/^[[:space:]]*- /{ /^[[:space:]]*#/!{ s/^[[:space:]]*-[[:space:]]*//; s/"[[:space:]]*#.*$/"/; s/'"'"'[[:space:]]*#.*$/'"'"'/; s/^"//; s/"$//; s/'"'"'//g; p; }}}' .github/workflows/comment-on-failed-checks.yaml)
   while IFS= read -r wf_name; do
     [ -z "$wf_name" ] && continue
     found=false
