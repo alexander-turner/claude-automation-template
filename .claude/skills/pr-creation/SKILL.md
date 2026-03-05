@@ -63,7 +63,7 @@ Before updating an existing PR (pushing new commits, editing the description, et
 
 ### Step 2: Self-Critique
 
-**Before creating the PR**, you MUST read [critique-prompt.md](critique-prompt.md) and launch a critique sub-agent using the Task tool:
+**Before creating the PR**, you MUST read the critique prompt at `.claude/skills/pr-creation/critique-prompt.md` and launch a critique sub-agent using the Task tool:
 
 - `subagent_type`: "general-purpose"
 - `description`: "Critique code changes"
