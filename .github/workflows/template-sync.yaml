@@ -151,29 +151,19 @@ jobs:
             echo "CONFLICT: $rel_path (local differs from template)"
             echo "$rel_path" >> /tmp/conflict_files.txt
 
-            # Generate conflict report showing both versions
+            # Generate conflict report with diff
             {
               echo "### \`$rel_path\`"
               echo ""
               echo "<details>"
               echo "<summary>View conflict details</summary>"
               echo ""
-              echo "**Your current version:**"
-              echo "\`\`\`"
-              head -100 "$rel_path"
-              [ "$(wc -l < "$rel_path")" -gt 100 ] && echo "... (truncated)"
-              echo "\`\`\`"
-              echo ""
-              echo "**Template version:**"
-              echo "\`\`\`"
-              head -100 "$template_file"
-              [ "$(wc -l < "$template_file")" -gt 100 ] && echo "... (truncated)"
-              echo "\`\`\`"
-              echo ""
-              echo "**Diff (your version → template):**"
+              echo "**Diff (your version \u2192 template):**"
               echo "\`\`\`diff"
-              diff -u "$rel_path" "$template_file" | head -80 || true
+              diff -u "$rel_path" "$template_file" | head -200 || true
               echo "\`\`\`"
+              echo ""
+              echo "**Full diff:** Fetch this PR branch locally and run \`diff\` against the template to see the complete changes"
               echo "</details>"
               echo ""
             } >> /tmp/conflict_report.md

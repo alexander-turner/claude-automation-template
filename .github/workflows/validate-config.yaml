@@ -1,0 +1,23 @@
+name: Validate config
+on:
+  push:
+    paths:
+      - ".claude/**"
+      - ".hooks/**"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - ".claude/**"
+      - ".hooks/**"
+      - ".github/workflows/**"
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate configuration
+        run: bash .github/scripts/validate-config.sh
