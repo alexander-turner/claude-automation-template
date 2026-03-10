@@ -198,7 +198,7 @@ jobs:
                     echo "<summary>View file with conflict markers</summary>"
                     echo ""
                     echo "\`\`\`"
-                    head -200 "$merge_result"
+                    head -200 "$rel_path"
                     echo "\`\`\`"
                     echo "</details>"
                     echo ""
