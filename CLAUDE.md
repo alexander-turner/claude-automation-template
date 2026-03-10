@@ -29,7 +29,7 @@ Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you disc
 ## CI / GitHub Actions
 
 - Add the `ci:full-tests` label to PRs that modify Playwright tests or interaction behavior, so CI actually runs Playwright on the PR.
-- **`paths` filter pitfall**: when a workflow's `push` trigger uses `paths` but its `pull_request` trigger omits `paths`, subsequent PR events (`synchronize`, `labeled`, `reopened`) may silently not trigger the workflow. Always mirror `paths` filters across both `push` and `pull_request` triggers.
+- **`paths` filter pitfall**: if a workflow uses `paths` on one trigger (e.g., `push`) but not the other (e.g., `pull_request`), the triggers fire on different sets of changes, leading to confusing behavior. Always keep `paths` filters consistent across both `push` and `pull_request` triggers.
 
 ## Testing
 
