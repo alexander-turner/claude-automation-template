@@ -26,6 +26,11 @@ Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you disc
 - Smart quotes (U+201C/U+201D/U+2018/U+2019): use Unicode escapes in code, centralize constants, ask user to verify output
 - Fail loudly with clear error messages, only remove error reporting if user asks specifically
 
+## CI / GitHub Actions
+
+- Add the `ci:full-tests` label to PRs that modify Playwright tests or interaction behavior, so CI actually runs Playwright on the PR.
+- **`paths` filter pitfall**: when a workflow's `push` trigger uses `paths` but its `pull_request` trigger omits `paths`, subsequent PR events (`synchronize`, `labeled`, `reopened`) may silently not trigger the workflow. Always mirror `paths` filters across both `push` and `pull_request` triggers.
+
 ## Testing
 
 - Never skip or weaken tests unless asked
