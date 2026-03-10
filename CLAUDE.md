@@ -16,7 +16,7 @@ Commits MUST use [Conventional Commits](https://www.conventionalcommits.org/) (`
 
 ## Pull Requests
 
-Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you discovered generalizable insights — the `phone-home.yaml` workflow propagates these to the template repo on merge.
+Use the `/pr-creation` skill. Include a `## Lessons Learned` section if you discovered generalizable insights — the `phone-home.yaml` workflow propagates these to the template repo on merge. Each lesson must be actionable: specify **what** to change, **where** (file/component), and **why**. Delete the section entirely if there are no lessons — empty or vague lessons create noise.
 
 ## Code Style
 
