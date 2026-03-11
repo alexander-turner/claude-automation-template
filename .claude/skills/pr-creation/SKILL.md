@@ -93,18 +93,20 @@ You MUST read [pr-templates.md](pr-templates.md) for the PR template and formatt
    If a PR already exists, update it with `gh pr edit` instead of creating a new one.
 3. Create the PR using `gh pr create` with the template from the resource file. Make sure that you use the target branch
 
-### Step 6: Update PR Title and Description After Fixes
+### Step 6: Update PR Title and Description (after any post-creation changes)
 
-After any fix commits (from critique, validation, or CI failures), **always** update the PR title and description to reflect the final state of all changes:
+If you made any commits after creating the PR (from critique, validation, or CI failures), **always** update the PR title and description to reflect the final state of all changes:
 
-```bash
-gh pr edit --title "<type>: <updated description>" --body "$(cat <<'EOF'
-<updated body using template from pr-templates.md>
-EOF
-)"
-```
+1. Re-read the diff (`git diff $CLAUDE_CODE_BASE_REF...HEAD`) and commit log (`git log $CLAUDE_CODE_BASE_REF..HEAD --oneline`) to see the full scope
+2. Rewrite the title and body to accurately describe the **current totality** of changes, not just the original scope:
+   ```bash
+   gh pr edit <pr-number> --title "<type>: <updated description>" --body "$(cat <<'EOF'
+   <updated body using template from pr-templates.md>
+   EOF
+   )"
+   ```
 
-The title and description must describe the **current totality** of changes, not just the original scope. Re-read the diff (`git diff $CLAUDE_CODE_BASE_REF...HEAD`) to ensure accuracy.
+Skip this step if no commits were made after Step 5.
 
 ### Step 7: Wait for CI Checks (MANDATORY)
 

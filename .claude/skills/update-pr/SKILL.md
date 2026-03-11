@@ -61,7 +61,7 @@ After pushing, dynamically update the PR to reflect **all** changes (not just th
 2. Read `.claude/skills/pr-creation/pr-templates.md` for the PR template format
 3. Rewrite the title and body to accurately describe the **current state** of the PR:
    ```bash
-   gh pr edit --title "<type>: <updated description>" --body "$(cat <<'EOF'
+   gh pr edit <pr-number> --title "<type>: <updated description>" --body "$(cat <<'EOF'
    <updated body using template from pr-templates.md>
    EOF
    )"
