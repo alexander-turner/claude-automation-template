@@ -93,16 +93,27 @@ You MUST read [pr-templates.md](pr-templates.md) for the PR template and formatt
    If a PR already exists, update it with `gh pr edit` instead of creating a new one.
 3. Create the PR using `gh pr create` with the template from the resource file. Make sure that you use the target branch
 
-After creating the PR, and after any subsequent fix commits, update the PR description with `gh pr edit --body "..."` to reflect the current state of all changes.
+### Step 6: Update PR Title and Description After Fixes
 
-### Step 6: Wait for CI Checks (MANDATORY)
+After any fix commits (from critique, validation, or CI failures), **always** update the PR title and description to reflect the final state of all changes:
+
+```bash
+gh pr edit --title "<type>: <updated description>" --body "$(cat <<'EOF'
+<updated body using template from pr-templates.md>
+EOF
+)"
+```
+
+The title and description must describe the **current totality** of changes, not just the original scope. Re-read the diff (`git diff $CLAUDE_CODE_BASE_REF...HEAD`) to ensure accuracy.
+
+### Step 7: Wait for CI Checks (MANDATORY)
 
 1. Run `gh pr checks <pr-number> --watch` to monitor
 2. If any checks fail, investigate and fix the issues
-3. Push fixes and wait again
+3. Push fixes, update the PR description (Step 6), and wait again
 4. Only proceed once all checks are green
 
-### Step 7: Report Result
+### Step 8: Report Result
 
 Provide the PR URL and confirm all CI checks have passed.
 
@@ -124,8 +135,9 @@ Provide the PR URL and confirm all CI checks have passed.
    ```
    gh pr create --title "fix: handle null session token in login flow" --body "..."
    ```
-8. Watches CI with `gh pr checks 47 --watch` — all green
-9. Reports: "PR #47 created and all CI checks pass: https://github.com/org/repo/pull/47"
+8. Updates PR description to reflect the null-check fix added during critique
+9. Watches CI with `gh pr checks 47 --watch` — all green
+10. Reports: "PR #47 created and all CI checks pass: https://github.com/org/repo/pull/47"
 
 ### Example 2: Multi-Commit Feature
 
@@ -141,9 +153,10 @@ Provide the PR URL and confirm all CI checks have passed.
 6. Re-runs critique (>3 fixes) — clean this time
 7. Runs validation — all pass
 8. Pushes and creates PR with detailed body summarizing the feature
-9. Watches CI — one check fails (lint warning on new file)
-10. Fixes lint issue, pushes, watches again — all green
-11. Reports success with PR URL
+9. Updates PR title and description to reflect all changes including critique fixes
+10. Watches CI — one check fails (lint warning on new file)
+11. Fixes lint issue, pushes, updates PR description again — all green
+12. Reports success with PR URL
 
 ### Example 3: When Input Is Unclear
 
