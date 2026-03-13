@@ -114,7 +114,13 @@ jobs:
 
           # Generate changelog between versions if we have a previous SHA
           if [ -n "$PREV_SHA" ] && [ "$PREV_SHA" != "$TEMPLATE_SHA" ]; then
-            CHANGELOG=$(git -C _template log --oneline "$PREV_SHA..$TEMPLATE_SHA" 2>/dev/null || echo "Could not generate changelog (previous SHA may no longer exist)")
+            if git -C _template cat-file -e "$PREV_SHA" 2>/dev/null; then
+              CHANGELOG=$(git -C _template log --oneline "$PREV_SHA..$TEMPLATE_SHA")
+            else
+              echo "::warning::Previous template SHA $PREV_SHA not found in template history (likely rewritten by force-push or rebase)"
+              CHANGELOG="Previous SHA \`$PREV_SHA\` no longer exists in template history (force-push/rebase). Showing last 20 commits instead:"$'\n'
+              CHANGELOG+=$(git -C _template log --oneline -20 "$TEMPLATE_SHA")
+            fi
             if [ -n "$CHANGELOG" ]; then
               echo "changelog<<CHANGELOG_DELIMITER_8a2b1c" >> "$GITHUB_OUTPUT"
               echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
