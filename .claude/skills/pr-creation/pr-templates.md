@@ -1,6 +1,6 @@
 # PR Templates and Formatting Reference
 
-## Check for Repository PR Guidance (MANDATORY)
+## Check for Repository PR Guidance
 
 Before writing any PR description, check the repository for guidance on how to structure PRs:
 
@@ -63,7 +63,6 @@ Use imperative mood with a Conventional Commits type prefix:
 - List concrete changes
 - Note any breaking changes
 - Include a "Lessons Learned" section if you discovered generalizable insights that could improve the template (this triggers the phone-home workflow). Each lesson must specify **what** to change, **where**, and **why** — vague observations get ignored. Delete the section entirely if there are no lessons.
-- **Never** include `claude.ai` URLs or session links
 
 ## Updating PR Description After Additional Commits
 
