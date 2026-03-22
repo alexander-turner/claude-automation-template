@@ -1,5 +1,15 @@
 # PR Templates and Formatting Reference
 
+## Check for Repository PR Guidance
+
+Before writing any PR description, check the repository for guidance on how to structure PRs:
+
+1. Look for `CONTRIBUTING.md`, `CONTRIBUTING`, or `.github/CONTRIBUTING.md`
+2. Look for `.github/PULL_REQUEST_TEMPLATE.md` or `.github/PULL_REQUEST_TEMPLATE/`
+3. Look for `docs/CONTRIBUTING.md` or `docs/contributing.md`
+
+If any of these exist, **read them** and adapt your PR description to follow the repository's conventions. Repository-specific guidance takes precedence over the default template below. Merge both: use the repo's structure/sections but still include the Lessons Learned section from this template if applicable.
+
 ## PR Creation Command
 
 First, check if a PR already exists for the current branch:
@@ -28,8 +38,6 @@ gh pr create --base "$CLAUDE_CODE_BASE_REF" --title "<type>: <description>" --bo
 - **What**: <concrete change — e.g., "Add X to CLAUDE.md", "Hook Y should also check Z">
 - **Where**: <file or component — e.g., `CLAUDE.md`, `session-setup.sh`, `phone-home.yaml`>
 - **Why**: <1-2 sentences — what went wrong or was discovered>
-
-https://claude.ai/code/session_...
 EOF
 )"
 ```
@@ -51,7 +59,6 @@ Use imperative mood with a Conventional Commits type prefix:
 - List concrete changes
 - Note any breaking changes
 - Include a "Lessons Learned" section if you discovered generalizable insights that could improve the template (this triggers the phone-home workflow). Each lesson must specify **what** to change, **where**, and **why** — vague observations get ignored. Delete the section entirely if there are no lessons.
-- Include the Claude session URL at the end
 
 ## Updating PR Description After Additional Commits
 
@@ -72,8 +79,6 @@ gh pr edit --body "$(cat <<'EOF'
 - **What**: <concrete change>
 - **Where**: <file or component>
 - **Why**: <what went wrong or was discovered>
-
-https://claude.ai/code/session_...
 EOF
 )"
 ```

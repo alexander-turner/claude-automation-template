@@ -58,15 +58,16 @@ git push
 After pushing, dynamically update the PR to reflect **all** changes (not just the latest commit):
 
 1. Run `git diff $CLAUDE_CODE_BASE_REF...HEAD` and `git log $CLAUDE_CODE_BASE_REF..HEAD --oneline` to see the full scope
-2. Read `.claude/skills/pr-creation/pr-templates.md` for the PR template format
-3. Rewrite the title and body to accurately describe the **current state** of the PR:
+2. Check for `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, or similar PR description guidance in the repo — if found, adapt the description to follow the repository's conventions
+3. Read `.claude/skills/pr-creation/pr-templates.md` for the PR template format and merge with any repo-specific guidance
+4. Rewrite the title and body to accurately describe the **current state** of the PR:
    ```bash
    gh pr edit <pr-number> --title "<type>: <updated description>" --body "$(cat <<'EOF'
    <updated body using template from pr-templates.md>
    EOF
    )"
    ```
-4. The title and summary should reflect the totality of the PR, not just the new changes
+5. The title and summary should reflect the totality of the PR, not just the new changes
 
 ### 6. Verify CI (with 15-minute timeout)
 

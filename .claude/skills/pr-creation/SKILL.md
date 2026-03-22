@@ -60,6 +60,7 @@ Before updating an existing PR (pushing new commits, editing the description, et
 2. Run `git diff <base-branch>...HEAD` to see all changes
 3. Run `git log <base-branch>..HEAD --oneline` to see all commits
 4. Review the changed files to understand the scope
+5. **Check for PR description guidance** — look for `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, or similar files in the repo. If found, read them and adapt the PR description to follow the repository's conventions (see [pr-templates.md](pr-templates.md) for details)
 
 ### Step 2: Self-Critique
 
