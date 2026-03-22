@@ -10,10 +10,6 @@ Before writing any PR description, check the repository for guidance on how to s
 
 If any of these exist, **read them** and adapt your PR description to follow the repository's conventions. Repository-specific guidance takes precedence over the default template below. Merge both: use the repo's structure/sections but still include the Lessons Learned section from this template if applicable.
 
-## IMPORTANT: No Session Links
-
-**NEVER** include `claude.ai` URLs, session links, or any AI-tool attribution links in PR titles, descriptions, or comments. These are internal tracking artifacts and do not belong in PRs.
-
 ## PR Creation Command
 
 First, check if a PR already exists for the current branch:
