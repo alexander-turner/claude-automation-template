@@ -47,13 +47,17 @@ jobs:
               return;
             }
 
-            // Filter out template placeholders, HTML comments, session URLs, and code fences
+            // Filter out template placeholders, HTML comments, session URLs,
+            // code fences, and stray heredoc artifacts (EOF markers, closing
+            // `)"`, lone backticks) that leak through from shell snippets.
             const filtered = lessons
               .split('\n')
               .filter(line => !line.trim().match(/^<.*>$/))
               .filter(line => !line.trim().match(/^<!--.*-->$/))
               .filter(line => !line.trim().match(/^https:\/\/claude\.ai\/code\/session_/))
               .filter(line => !line.trim().match(/^```/))
+              .filter(line => !line.trim().match(/^EOF\)?"?$/))
+              .filter(line => !line.trim().match(/^\)"?$/))
               .join('\n')
               .trim();
             if (!filtered || filtered.length < 10) {
