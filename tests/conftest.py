@@ -70,19 +70,3 @@ def _match(args, kwargs, results):
         if cmd.startswith(prefix):
             return results[prefix]
     return _completed_fn()
-
-
-@pytest.fixture()
-def tracker_env(monkeypatch: pytest.MonkeyPatch):
-    """Set default env vars for track_ci_failures.main()."""
-    env = {
-        "GITHUB_REPOSITORY": "owner/repo",
-        "PR_NUMBER": "42",
-        "WORKFLOW_NAME": "CI",
-        "RUN_URL": "https://github.com/owner/repo/actions/runs/1001",
-        "RUN_ID": "1001",
-        "HEAD_SHA": "abc1234def5678",
-    }
-    for k, v in env.items():
-        monkeypatch.setenv(k, v)
-    return env
