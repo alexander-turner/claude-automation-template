@@ -53,16 +53,15 @@ Then [install the Claude GitHub app](https://github.com/apps/claude) to enable `
 
 ### GitHub Actions (`.github/workflows/`)
 
-| Workflow                        | What it does                                                          |
-| ------------------------------- | --------------------------------------------------------------------- |
-| `claude.yaml`                   | Responds to `@claude` mentions in issues/PRs                          |
-| `comment-on-failed-checks.yaml` | Tracks CI failures on `claude/` branches, labels `needs-human-review` |
-| `template-sync.yaml`            | Daily sync from template repo with conflict detection                 |
-| `phone-home.yaml`               | Propagates "Lessons Learned" from merged PRs back to the template     |
-| `node-tests.yaml`               | Runs `pnpm test` (skips gracefully if unconfigured)                   |
-| `lint.yaml`                     | Runs `pnpm lint` and `pnpm check` (skips gracefully if unconfigured)  |
-| `format-check.yaml`             | Runs Prettier format check                                            |
-| `dependabot-auto-merge.yaml`    | Auto-merges minor/patch Dependabot PRs                                |
+| Workflow                     | What it does                                                         |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `claude.yaml`                | Responds to `@claude` mentions in issues/PRs                         |
+| `template-sync.yaml`         | Daily sync from template repo with conflict detection                |
+| `phone-home.yaml`            | Propagates "Lessons Learned" from merged PRs back to the template    |
+| `node-tests.yaml`            | Runs `pnpm test` (skips gracefully if unconfigured)                  |
+| `lint.yaml`                  | Runs `pnpm lint` and `pnpm check` (skips gracefully if unconfigured) |
+| `format-check.yaml`          | Runs Prettier format check                                           |
+| `dependabot-auto-merge.yaml` | Auto-merges minor/patch Dependabot PRs                               |
 
 ## Customization
 
@@ -70,7 +69,6 @@ After creating your repo from the template, configure these files:
 
 - **`CLAUDE.md`** — Add your project-specific context for Claude
 - **`package.json`** — Wire up your `dev`, `build`, `test`, `lint`, and `check` scripts
-- **`.github/workflows/comment-on-failed-checks.yaml`** — Add your CI workflow names
 
 Unconfigured scripts are skipped gracefully — no failures on first push.
 

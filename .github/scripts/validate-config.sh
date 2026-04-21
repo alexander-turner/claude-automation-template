@@ -42,28 +42,6 @@ for f in .hooks/*; do
   fi
 done
 
-# 3. Workflow names in comment-on-failed-checks.yaml match sibling workflow name: fields
-echo "Checking workflow name consistency..."
-if [ -f .github/workflows/comment-on-failed-checks.yaml ]; then
-  # Extract workflow names, stripping inline YAML comments (e.g. - "Name" # path)
-  wf_names=$(sed -n '/workflows:/,/types:/{/^[[:space:]]*- /{ /^[[:space:]]*#/!{ s/^[[:space:]]*-[[:space:]]*//; s/"[[:space:]]*#.*$/"/; s/'"'"'[[:space:]]*#.*$/'"'"'/; s/^"//; s/"$//; s/'"'"'//g; p; }}}' .github/workflows/comment-on-failed-checks.yaml)
-  while IFS= read -r wf_name; do
-    [ -z "$wf_name" ] && continue
-    found=false
-    for wf_file in .github/workflows/*.yaml .github/workflows/*.yml; do
-      [ -f "$wf_file" ] || continue
-      file_name=$(grep -m1 '^name:' "$wf_file" 2>/dev/null | sed 's/^name:[[:space:]]*//; s/^"//; s/"$//; s/'"'"'//g' || true)
-      if [ "$file_name" = "$wf_name" ]; then
-        found=true
-        break
-      fi
-    done
-    if [ "$found" != true ]; then
-      error "Workflow '$wf_name' listed in comment-on-failed-checks.yaml but not found in any workflow file"
-    fi
-  done <<<"$wf_names"
-fi
-
 # Summary
 echo ""
 if [ "$errors" -gt 0 ]; then
