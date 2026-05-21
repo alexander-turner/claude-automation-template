@@ -42,9 +42,9 @@
     ]
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.4.1",
+    "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
-    "lint-staged": "^16.2.7",
+    "lint-staged": "^17.0.5",
     "prettier": "^3.0.0"
   }
 }
