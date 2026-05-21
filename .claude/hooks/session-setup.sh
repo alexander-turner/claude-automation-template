@@ -106,9 +106,6 @@ if [ -z "${GH_REPO:-}" ]; then
 		fi
 	fi
 fi
-# Don't call `gh repo set-default` here — it rejects proxy remotes
-# (http://local_proxy@.../git/owner/repo) because the host isn't a known
-# GitHub host. GH_REPO above is enough for gh to find the repo.
 
 #######################################
 # Project dependencies
