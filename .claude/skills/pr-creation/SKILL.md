@@ -2,16 +2,18 @@
 # prettier-ignore
 name: pr-creation
 description: >
-  Creates high-quality pull requests with mandatory self-critique before submission.
-  Activate this skill whenever you are asked to create, open, submit, or push a pull request.
+  Creates high-quality pull requests with an iterative compress-critique-fix loop before submission.
+  Activate this skill whenever you are asked to create, open, submit, or push a pull request,
+  AND whenever a new feature, fix, or refactor is complete and ready to ship.
   Also activate when the user says "make a PR", "open a PR", "submit this for review",
-  "push and create a PR", "I'm done, create the PR", or any variation of requesting a pull request.
+  "push and create a PR", "I'm done, create the PR", "the feature is done", "I'm finished",
+  or any variation of completing work / requesting a pull request.
   Always activate before running `gh pr create`.
 ---
 
 # Pull Request Creation Skill
 
-**IMPORTANT: Always follow this skill before creating any PR.** Do not skip steps, especially the self-critique.
+**IMPORTANT: Always follow this skill before creating any PR.** Do not skip steps, especially the iterative compress-critique-fix loop.
 
 ## When to Use
 
@@ -25,10 +27,12 @@ Activate this skill when the user says any of the following (or similar):
 - "I'm done, create the PR"
 - "Can you PR this?"
 - "Send this up for review"
+- "The feature is done" / "I'm finished" / "Ship it"
 
 Also activate when:
 
-- You have completed a task and the user asks you to submit it
+- You have just finished implementing a new feature, fix, or refactor — run the loop, then create the PR
+- The user asks you to submit completed work
 - CLAUDE.md or task instructions say to create a PR when done
 
 Do **NOT** use this skill for:
@@ -62,27 +66,37 @@ Before updating an existing PR (pushing new commits, editing the description, et
 4. Review the changed files to understand the scope
 5. **Check for PR description guidance** — look for `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, or similar files in the repo. If found, read them and adapt the PR description to follow the repository's conventions (see [pr-templates.md](pr-templates.md) for details)
 
-### Step 2: Self-Critique
+### Step 2: Iterative Compress-Critique-Fix Loop
 
-**Before creating the PR**, you MUST read the critique prompt at `.claude/skills/pr-creation/critique-prompt.md` and launch a critique sub-agent using the Task tool:
+**Before creating the PR**, run an iterative loop until you reach a fixed point — a full critique pass that turns up nothing worth changing. This is the same loop described in `CLAUDE.md`'s Self-Critique Loop section; apply it here on the full diff.
 
-- `subagent_type`: "general-purpose"
-- `description`: "Critique code changes"
-- `prompt`: Include the full diff output and the critique prompt from that file
+You MUST read `.claude/skills/pr-creation/critique-prompt.md` once before the first pass — it contains the detailed checklist the sub-agent needs.
 
-Do NOT skip reading the resource file — it contains the detailed checklist the sub-agent needs.
+Each pass:
 
-### Step 3: Address Critique
+1. Launch a critique sub-agent using the Task tool:
+   - `subagent_type`: "general-purpose"
+   - `description`: "Critique code changes"
+   - `prompt`: Include the full diff (`git diff $CLAUDE_CODE_BASE_REF...HEAD`) and the critique prompt from the resource file
+2. For each issue raised, assess validity, then take the easy wins first:
+   - **Compress** — delete dead code, unused imports, commented-out blocks, WHAT-comments, backwards-compat shims, premature abstractions
+   - **Readability** — tighter names, un-nest conditionals, combine related checks, guard-clause early returns
+   - **Code reuse** — extract duplicated logic into helpers; search for existing utilities before adding new ones
+   - **Parametrize tests** — collapse near-identical tests into a single parametrized/table-driven test with exact-equality assertions
+   - **Fixtures** — pull repeated setup/teardown into shared fixtures
+   - **Correctness** — bugs, edge cases, security, swallowed errors
+3. Commit the fixes (Conventional Commits format, per `CLAUDE.md`)
+4. Start a fresh critique pass — the previous output is now stale
 
-1. For each issue raised, determine if it's valid
-2. Make necessary fixes and commit them
-3. If you fixed more than 3 issues or made structural changes, re-run the critique (max 2 re-runs total — if issues persist after 2 rounds of critique, proceed to validation rather than looping indefinitely)
+**Stop** when a full pass returns no actionable issues. Cap at ~5 passes; if issues are still being found at pass 5, stop, summarize what's left, and ask the user how to proceed rather than looping silently.
 
-### Step 4: Run Validation
+**Skip the loop** for trivial changes (typo fixes, single-line config tweaks, pure docs edits) — say so explicitly when you skip.
 
-Run the project's test/lint/typecheck commands (see [pr-templates.md](pr-templates.md) for common commands per language). Fix any failures before proceeding.
+### Step 3: Run Validation
 
-### Step 5: Push and Create the Pull Request
+Run the project's test/lint/typecheck commands (see [pr-templates.md](pr-templates.md) for common commands per language). Fix any failures before proceeding. If validation surfaces new defects, loop back into Step 2 with the fixes included.
+
+### Step 4: Push and Create the Pull Request
 
 You MUST read [pr-templates.md](pr-templates.md) for the PR template and formatting guidelines before this step.
 
@@ -94,7 +108,7 @@ You MUST read [pr-templates.md](pr-templates.md) for the PR template and formatt
    If a PR already exists, update it with `gh pr edit` instead of creating a new one.
 3. Create the PR using `gh pr create` with the template from the resource file. Make sure that you use the target branch
 
-### Step 6: Update PR Title and Description (after any post-creation changes)
+### Step 5: Update PR Title and Description (after any post-creation changes)
 
 If you made any commits after creating the PR (from critique, validation, or CI failures), **always** update the PR title and description to reflect the final state of all changes:
 
@@ -107,16 +121,16 @@ If you made any commits after creating the PR (from critique, validation, or CI 
    )"
    ```
 
-Skip this step if no commits were made after Step 5.
+Skip this step if no commits were made after Step 4.
 
-### Step 7: Wait for CI Checks (MANDATORY)
+### Step 6: Wait for CI Checks (MANDATORY)
 
 1. Run `gh pr checks <pr-number> --watch` to monitor
 2. If any checks fail, investigate and fix the issues
-3. Push fixes, update the PR description (Step 6), and wait again
+3. Push fixes, update the PR description (Step 5), and wait again
 4. Only proceed once all checks are green
 
-### Step 8: Report Result
+### Step 7: Report Result
 
 Provide the PR URL and confirm all CI checks have passed.
 
@@ -150,16 +164,15 @@ Provide the PR URL and confirm all CI checks have passed.
 
 1. Runs `git diff $CLAUDE_CODE_BASE_REF...HEAD` — sees changes across 8 files including new components, tests, and API routes
 2. Runs `git log $CLAUDE_CODE_BASE_REF..HEAD --oneline` — sees 5 commits
-3. Launches critique sub-agent with the full diff
-4. Critique returns 4 issues: unused import, missing error boundary, test not covering edge case, over-engineered helper
-5. Fixes all 4 issues across 2 additional commits
-6. Re-runs critique (>3 fixes) — clean this time
-7. Runs validation — all pass
-8. Pushes and creates PR with detailed body summarizing the feature
-9. Updates PR title and description to reflect all changes including critique fixes
-10. Watches CI — one check fails (lint warning on new file)
-11. Fixes lint issue, pushes, updates PR description again — all green
-12. Reports success with PR URL
+3. **Pass 1:** Critique flags 4 issues — unused import, two near-identical tests that should parametrize, duplicated validation logic across 2 components, an over-engineered single-caller wrapper. Fixes them: deletes the import, collapses the tests with `it.each`, extracts a shared `validateInput` helper for the duplication, inlines the single-caller wrapper. Commits.
+4. **Pass 2:** Critique flags 2 more — a leftover WHAT-comment from the refactor and a nested conditional. Un-nests and removes the comment. Commits.
+5. **Pass 3:** Critique returns clean — fixed point reached, exit loop.
+6. Runs validation — all pass
+7. Pushes and creates PR with detailed body summarizing the feature
+8. Updates PR title and description to reflect all changes including critique fixes
+9. Watches CI — one check fails (lint warning on new file)
+10. Fixes lint issue, pushes, updates PR description again — all green
+11. Reports success with PR URL
 
 ### Example 3: When Input Is Unclear
 
