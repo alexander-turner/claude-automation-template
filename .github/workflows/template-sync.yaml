@@ -1,3 +1,4 @@
+# template-sync: managed
 name: Sync from Template
 
 # Syncs updates from the template repository automatically.
@@ -37,10 +38,15 @@ on:
 
 env:
   TEMPLATE_REPO: "alexander-turner/claude-automation-template"
-  # Only sync core automation files that don't need customization
-  SYNC_PATHS: ".claude .hooks .github/actions .github/scripts .github/workflows/template-sync.yaml .github/workflows/dependabot-auto-merge.yaml .github/workflows/claude.yaml .github/workflows/phone-home.yaml .github/workflows/security-vulnerability-scan.yaml .github/prompts/security-vulnerability-scan.md"
-  # These are excluded because they require project-specific customization
-  # (lint/test need project scripts)
+  # Whole directories of core automation files that are always template-owned.
+  # Individual workflows under .github/workflows/ are auto-discovered at runtime
+  # by scanning for a `# template-sync: managed` marker line (see the
+  # "Discover template-managed workflows" section in the sync step below).
+  # To add a new template-managed workflow, put that marker at the top of the
+  # workflow file — no change to SYNC_PATHS needed.
+  SYNC_PATHS: ".claude .hooks .github/actions .github/scripts .github/prompts"
+  # Paths listed here are removed from SYNC_PATHS before processing. Use the
+  # exact string that appears in SYNC_PATHS (whole dir or whole file path).
   EXCLUDE_PATHS: ""
 
 permissions:
@@ -142,6 +148,22 @@ jobs:
 
           # Update version file
           echo "$TEMPLATE_SHA" > .template-version
+
+          #############################################
+          # Discover template-managed workflows
+          #############################################
+          # Workflows opt-in by including `# template-sync: managed` near the
+          # top of the file. This lets the template add new automation
+          # workflows without anyone having to remember to edit SYNC_PATHS —
+          # the marker travels with the file.
+          for wf in _template/.github/workflows/*.yaml _template/.github/workflows/*.yml; do
+            [ -e "$wf" ] || continue
+            if head -20 "$wf" | grep -qE '^# template-sync: managed[[:space:]]*$'; then
+              rel="${wf#_template/}"
+              SYNC_PATHS="$SYNC_PATHS $rel"
+              echo "Discovered template-managed workflow: $rel"
+            fi
+          done
 
           #############################################
           # File processing
