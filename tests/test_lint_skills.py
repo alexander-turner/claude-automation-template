@@ -2,22 +2,10 @@
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = REPO_ROOT / ".hooks" / "lint-skills.sh"
-
-
-@pytest.fixture
-def sandbox(tmp_path: Path) -> Path:
-    dest = tmp_path / "lint-skills.sh"
-    shutil.copy2(SCRIPT, dest)
-    dest.chmod(0o755)
-    return tmp_path
 
 
 def write_skill(sandbox: Path, name: str, body: str) -> Path:
@@ -27,8 +15,9 @@ def write_skill(sandbox: Path, name: str, body: str) -> Path:
     return path
 
 
-def run_lint(sandbox: Path, *files: Path) -> subprocess.CompletedProcess:
-    args = ["bash", str(sandbox / "lint-skills.sh"), *[str(f) for f in files]]
+def run_lint(sandbox: Path, copy_script, *files: Path) -> subprocess.CompletedProcess:
+    script = copy_script("lint-skills.sh", sandbox)
+    args = ["bash", str(script), *[str(f) for f in files]]
     return subprocess.run(args, cwd=sandbox, capture_output=True, text=True)
 
 
@@ -45,58 +34,50 @@ description: This skill does a thing. Activate when the user says foo.
 """
 
 
-def test_accepts_valid_skill(sandbox: Path) -> None:
-    skill = write_skill(sandbox, "example", VALID_SKILL)
-    result = run_lint(sandbox, skill)
+def test_accepts_valid_skill(tmp_path: Path, copy_script) -> None:
+    skill = write_skill(tmp_path, "example", VALID_SKILL)
+    result = run_lint(tmp_path, copy_script, skill)
     assert result.returncode == 0, result.stderr
 
 
-def test_rejects_missing_frontmatter(sandbox: Path) -> None:
-    skill = write_skill(sandbox, "broken", "# Just a heading\n")
-    result = run_lint(sandbox, skill)
+@pytest.mark.parametrize(
+    "body, expected_stderr_snippet",
+    [
+        ("# Just a heading\n", "missing YAML frontmatter"),
+        (
+            "---\ndescription: A skill. With two sentences.\n---\n# body\n",
+            "missing 'name:'",
+        ),
+        ("---\nname: x\ndescription: Tiny\n---\n# body\n", "description too short"),
+    ],
+    ids=["no-frontmatter", "no-name", "short-description"],
+)
+def test_rejects_invalid_skill(
+    tmp_path: Path, copy_script, body: str, expected_stderr_snippet: str
+) -> None:
+    skill = write_skill(tmp_path, "broken", body)
+    result = run_lint(tmp_path, copy_script, skill)
     assert result.returncode == 1
-    assert "missing YAML frontmatter" in result.stderr
+    assert expected_stderr_snippet in result.stderr
 
 
-def test_rejects_missing_name(sandbox: Path) -> None:
-    skill = write_skill(
-        sandbox,
-        "broken",
-        "---\ndescription: A skill. With two sentences.\n---\n# body\n",
-    )
-    result = run_lint(sandbox, skill)
-    assert result.returncode == 1
-    assert "missing 'name:'" in result.stderr
-
-
-def test_rejects_short_description(sandbox: Path) -> None:
-    skill = write_skill(
-        sandbox,
-        "broken",
-        "---\nname: x\ndescription: Tiny\n---\n# body\n",
-    )
-    result = run_lint(sandbox, skill)
-    assert result.returncode == 1
-    assert "description too short" in result.stderr
-
-
-def test_rejects_flat_skill_file(sandbox: Path) -> None:
-    flat = sandbox / ".claude" / "skills" / "flat.md"
+def test_rejects_flat_skill_file(tmp_path: Path, copy_script) -> None:
+    flat = tmp_path / ".claude" / "skills" / "flat.md"
     flat.parent.mkdir(parents=True, exist_ok=True)
     flat.write_text(VALID_SKILL)
-    result = run_lint(sandbox, flat)
+    result = run_lint(tmp_path, copy_script, flat)
     assert result.returncode == 1
     assert "flat file format" in result.stderr
 
 
-def test_ignores_files_outside_skills(sandbox: Path) -> None:
-    other = sandbox / "README.md"
+def test_ignores_files_outside_skills(tmp_path: Path, copy_script) -> None:
+    other = tmp_path / "README.md"
     other.write_text("hi\n")
-    result = run_lint(sandbox, other)
+    result = run_lint(tmp_path, copy_script, other)
     assert result.returncode == 0, result.stderr
 
 
-def test_warns_when_examples_missing(sandbox: Path) -> None:
+def test_warns_when_examples_missing(tmp_path: Path, copy_script) -> None:
     body = (
         "---\n"
         "name: example\n"
@@ -104,7 +85,7 @@ def test_warns_when_examples_missing(sandbox: Path) -> None:
         "---\n"
         "# Example\n"
     )
-    skill = write_skill(sandbox, "example", body)
-    result = run_lint(sandbox, skill)
+    skill = write_skill(tmp_path, "example", body)
+    result = run_lint(tmp_path, copy_script, skill)
     assert result.returncode == 0
     assert "Examples" in result.stderr

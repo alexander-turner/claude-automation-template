@@ -3,24 +3,11 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
+from typing import Callable
 
 import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = REPO_ROOT / ".github" / "scripts" / "validate-config.sh"
-
-
-@pytest.fixture
-def sandbox(tmp_path: Path) -> Path:
-    """Sandbox with the validate-config script available at the expected path."""
-    (tmp_path / ".github" / "scripts").mkdir(parents=True)
-    dest = tmp_path / ".github" / "scripts" / "validate-config.sh"
-    shutil.copy2(SCRIPT, dest)
-    dest.chmod(0o755)
-    return tmp_path
 
 
 def write_settings(sandbox: Path, settings: dict) -> None:
@@ -32,14 +19,16 @@ def make_hook(sandbox: Path, rel_path: str, executable: bool = True) -> Path:
     path = sandbox / rel_path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("#!/usr/bin/env bash\n")
-    if executable:
-        path.chmod(0o755)
-    else:
-        path.chmod(0o644)
+    path.chmod(0o755 if executable else 0o644)
     return path
 
 
-def run_validator(sandbox: Path) -> subprocess.CompletedProcess:
+def run_validator(
+    sandbox: Path, copy_script: Callable[[str, Path], Path]
+) -> subprocess.CompletedProcess:
+    scripts_dir = sandbox / ".github" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    copy_script("validate-config.sh", scripts_dir)
     return subprocess.run(
         ["bash", ".github/scripts/validate-config.sh"],
         cwd=sandbox,
@@ -48,66 +37,57 @@ def run_validator(sandbox: Path) -> subprocess.CompletedProcess:
     )
 
 
-def test_passes_with_valid_config(sandbox: Path) -> None:
-    write_settings(
-        sandbox,
-        {
-            "hooks": {
-                "SessionStart": [
-                    {
-                        "hooks": [
-                            {
-                                "type": "command",
-                                "command": '"$CLAUDE_PROJECT_DIR"/.claude/hooks/session-setup.sh',
-                            }
-                        ]
-                    }
-                ]
-            }
-        },
-    )
-    make_hook(sandbox, ".claude/hooks/session-setup.sh")
-    make_hook(sandbox, ".hooks/pre-commit")
-
-    result = run_validator(sandbox)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "All checks passed" in result.stdout
+def _command(path: str) -> dict:
+    return {
+        "hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": path}]}]}
+    }
 
 
-def test_fails_when_settings_missing(sandbox: Path) -> None:
-    make_hook(sandbox, ".hooks/pre-commit")
-    result = run_validator(sandbox)
+@pytest.mark.parametrize(
+    "settings, hooks_to_create, expected_returncode, expected_substring",
+    [
+        # Happy path
+        (
+            _command('"$CLAUDE_PROJECT_DIR"/.claude/hooks/session-setup.sh'),
+            [(".claude/hooks/session-setup.sh", True), (".hooks/pre-commit", True)],
+            0,
+            "All checks passed",
+        ),
+        # Referenced hook script doesn't exist
+        (
+            _command('"$CLAUDE_PROJECT_DIR"/.claude/hooks/missing.sh'),
+            [(".hooks/pre-commit", True)],
+            1,
+            "missing.sh",
+        ),
+        # Hook file exists but isn't executable
+        (
+            {"hooks": {}},
+            [(".hooks/pre-commit", False)],
+            1,
+            "not executable",
+        ),
+    ],
+    ids=["valid", "missing-hook", "non-executable-hook"],
+)
+def test_validate_config(
+    tmp_path: Path,
+    copy_script,
+    settings: dict,
+    hooks_to_create: list[tuple[str, bool]],
+    expected_returncode: int,
+    expected_substring: str,
+) -> None:
+    write_settings(tmp_path, settings)
+    for rel_path, executable in hooks_to_create:
+        make_hook(tmp_path, rel_path, executable=executable)
+    result = run_validator(tmp_path, copy_script)
+    assert result.returncode == expected_returncode, result.stdout + result.stderr
+    assert expected_substring in result.stdout + result.stderr
+
+
+def test_fails_when_settings_missing(tmp_path: Path, copy_script) -> None:
+    make_hook(tmp_path, ".hooks/pre-commit", executable=True)
+    result = run_validator(tmp_path, copy_script)
     assert result.returncode == 1
     assert ".claude/settings.json not found" in result.stdout
-
-
-def test_fails_when_referenced_hook_missing(sandbox: Path) -> None:
-    write_settings(
-        sandbox,
-        {
-            "hooks": {
-                "SessionStart": [
-                    {
-                        "hooks": [
-                            {
-                                "type": "command",
-                                "command": '"$CLAUDE_PROJECT_DIR"/.claude/hooks/missing.sh',
-                            }
-                        ]
-                    }
-                ]
-            }
-        },
-    )
-    make_hook(sandbox, ".hooks/pre-commit")
-    result = run_validator(sandbox)
-    assert result.returncode == 1
-    assert "missing.sh" in result.stdout
-
-
-def test_fails_when_hook_not_executable(sandbox: Path) -> None:
-    write_settings(sandbox, {"hooks": {}})
-    make_hook(sandbox, ".hooks/pre-commit", executable=False)
-    result = run_validator(sandbox)
-    assert result.returncode == 1
-    assert "not executable" in result.stdout

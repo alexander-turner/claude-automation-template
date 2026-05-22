@@ -2,28 +2,12 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 from pathlib import Path
 
+import pytest
 
-def commit_all(repo: Path) -> None:
-    env = os.environ.copy()
-    env.update(
-        {
-            "GIT_AUTHOR_NAME": "t",
-            "GIT_AUTHOR_EMAIL": "t@t",
-            "GIT_COMMITTER_NAME": "t",
-            "GIT_COMMITTER_EMAIL": "t@t",
-        }
-    )
-    subprocess.run(["git", "add", "-A"], cwd=repo, check=True, env=env)
-    subprocess.run(
-        ["git", "commit", "-q", "-m", "fixture", "--allow-empty"],
-        cwd=repo,
-        check=True,
-        env=env,
-    )
+from tests._helpers import commit_all
 
 
 def run_script(repo: Path, copy_script) -> subprocess.CompletedProcess:
@@ -33,32 +17,41 @@ def run_script(repo: Path, copy_script) -> subprocess.CompletedProcess:
     )
 
 
-def test_passes_when_no_symlinks(empty_git_repo: Path, copy_script) -> None:
-    (empty_git_repo / "regular.txt").write_text("hi")
+@pytest.mark.parametrize(
+    "setup, expect_pass, expected_violation",
+    [
+        ("no_symlinks", True, None),
+        ("relative_symlink", True, None),
+        ("absolute_symlink", False, "link -> /etc/passwd"),
+    ],
+)
+def test_check_symlinks(
+    empty_git_repo: Path,
+    copy_script,
+    setup: str,
+    expect_pass: bool,
+    expected_violation: str | None,
+) -> None:
+    if setup == "no_symlinks":
+        (empty_git_repo / "regular.txt").write_text("hi")
+    elif setup == "relative_symlink":
+        (empty_git_repo / "target.txt").write_text("hi")
+        (empty_git_repo / "link").symlink_to("target.txt")
+    elif setup == "absolute_symlink":
+        (empty_git_repo / "link").symlink_to("/etc/passwd")
     commit_all(empty_git_repo)
+
     result = run_script(empty_git_repo, copy_script)
-    assert result.returncode == 0, result.stderr
-
-
-def test_passes_with_relative_symlink(empty_git_repo: Path, copy_script) -> None:
-    (empty_git_repo / "target.txt").write_text("hi")
-    (empty_git_repo / "link").symlink_to("target.txt")
-    commit_all(empty_git_repo)
-    result = run_script(empty_git_repo, copy_script)
-    assert result.returncode == 0, result.stderr
-
-
-def test_fails_with_absolute_symlink(empty_git_repo: Path, copy_script) -> None:
-    (empty_git_repo / "link").symlink_to("/etc/passwd")
-    commit_all(empty_git_repo)
-    result = run_script(empty_git_repo, copy_script)
-    assert result.returncode == 1
-    assert "link -> /etc/passwd" in result.stdout + result.stderr
+    if expect_pass:
+        assert result.returncode == 0, result.stderr
+    else:
+        assert result.returncode == 1
+        assert expected_violation in result.stdout + result.stderr
 
 
 def test_ignores_untracked_absolute_symlink(empty_git_repo: Path, copy_script) -> None:
     """Untracked links aren't anyone else's problem yet."""
-    commit_all(empty_git_repo)
     (empty_git_repo / "link").symlink_to("/etc/passwd")
+    # Don't commit — link stays untracked.
     result = run_script(empty_git_repo, copy_script)
     assert result.returncode == 0, result.stderr

@@ -10,8 +10,14 @@ set -euo pipefail
 
 : "${TOKEN:?TOKEN must be set}"
 
-HEADERS=$(curl -sS -I -H "Authorization: token $TOKEN" \
-  https://api.github.com/user 2>/dev/null || true)
+# Capture stderr so a network error gets surfaced instead of silently producing
+# an empty $HEADERS (which would misclassify a classic PAT as fine-grained).
+if ! HEADERS=$(curl -sSf -I -H "Authorization: token $TOKEN" \
+  https://api.github.com/user 2>&1); then
+  echo "::error::Could not query GitHub to validate TEMPLATE_SYNC_TOKEN scopes:" >&2
+  echo "$HEADERS" >&2
+  exit 1
+fi
 
 if echo "$HEADERS" | grep -qi '^x-oauth-scopes:'; then
   SCOPES=$(echo "$HEADERS" | grep -i '^x-oauth-scopes:' | sed 's/^[^:]*: //' | tr -d '\r\n')

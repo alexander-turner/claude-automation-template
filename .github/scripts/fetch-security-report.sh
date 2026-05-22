@@ -20,32 +20,48 @@ set -uo pipefail
 GITHUB_ENV="${GITHUB_ENV:-/dev/null}"
 REPORT_PATH="${REPORT_PATH:-/tmp/security-report.md}"
 
+# Append a section heading + `gh api` result to the report. Passes $REPO into
+# jq via `--arg repo` (not string interpolation) to keep jq parsing safe even
+# if the repo name later contains special characters.
+gh_api_section() {
+  local heading="$1" endpoint="$2" jq_expr="$3" fallback="$4"
+  {
+    echo ""
+    echo "$heading"
+  } >>"$REPORT_PATH"
+  gh api "$endpoint" --arg repo "$REPO" --jq "$jq_expr" \
+    >>"$REPORT_PATH" 2>&1 || echo "$fallback" >>"$REPORT_PATH"
+}
+
 echo "## Dependabot Alerts" >"$REPORT_PATH"
 gh api "repos/${REPO}/dependabot/alerts?state=open&per_page=100" \
-  --jq '.[] | "- **\(.security_advisory.severity | ascii_upcase)**: [\(.security_advisory.summary)](https://github.com/'"${REPO}"'/security/dependabot/\(.number)) in `\(.dependency.package.name)` (\(.dependency.package.ecosystem))"' \
+  --arg repo "$REPO" \
+  --jq '.[] | "- **\(.security_advisory.severity | ascii_upcase)**: [\(.security_advisory.summary)](https://github.com/\($repo)/security/dependabot/\(.number)) in `\(.dependency.package.name)` (\(.dependency.package.ecosystem))"' \
   >>"$REPORT_PATH" 2>&1 || echo "_Could not fetch Dependabot alerts (check repo permissions)._" >>"$REPORT_PATH"
 
-{
-  echo ""
-  echo "## Code Scanning Alerts"
-} >>"$REPORT_PATH"
-gh api "repos/${REPO}/code-scanning/alerts?state=open&per_page=100" \
-  --jq '.[] | "- **\(.rule.severity // .rule.security_severity_level | ascii_upcase)**: [\(.rule.description)](https://github.com/'"${REPO}"'/security/code-scanning/\(.number)) at `\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)`"' \
-  >>"$REPORT_PATH" 2>&1 || echo "_No code scanning alerts or code scanning not enabled._" >>"$REPORT_PATH"
+gh_api_section \
+  "## Code Scanning Alerts" \
+  "repos/${REPO}/code-scanning/alerts?state=open&per_page=100" \
+  '.[] | "- **\(.rule.severity // .rule.security_severity_level | ascii_upcase)**: [\(.rule.description)](https://github.com/\($repo)/security/code-scanning/\(.number)) at `\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)`"' \
+  "_No code scanning alerts or code scanning not enabled._"
 
-{
-  echo ""
-  echo "## Secret Scanning Alerts"
-} >>"$REPORT_PATH"
-gh api "repos/${REPO}/secret-scanning/alerts?state=open&per_page=100" \
-  --jq '.[] | "- **\(.state | ascii_upcase)**: \(.secret_type_display_name) — [Alert #\(.number)](https://github.com/'"${REPO}"'/security/secret-scanning/\(.number))"' \
-  >>"$REPORT_PATH" 2>&1 || echo "_No secret scanning alerts or secret scanning not enabled._" >>"$REPORT_PATH"
+gh_api_section \
+  "## Secret Scanning Alerts" \
+  "repos/${REPO}/secret-scanning/alerts?state=open&per_page=100" \
+  '.[] | "- **\(.state | ascii_upcase)**: \(.secret_type_display_name) — [Alert #\(.number)](https://github.com/\($repo)/security/secret-scanning/\(.number))"' \
+  "_No secret scanning alerts or secret scanning not enabled._"
 
 {
   echo ""
   echo "## pnpm audit"
 } >>"$REPORT_PATH"
-pnpm audit 2>&1 | head -100 >>"$REPORT_PATH" || true
+# Skip when there's no Node project — setup-base-env leaves pnpm uninstalled
+# in that case, and `pnpm audit` would error out instead of returning "clean".
+if [ -f package.json ]; then
+  pnpm audit 2>&1 | head -100 >>"$REPORT_PATH" || true
+else
+  echo "_Skipped: no package.json (not a Node project)._" >>"$REPORT_PATH"
+fi
 
 {
   echo ""
