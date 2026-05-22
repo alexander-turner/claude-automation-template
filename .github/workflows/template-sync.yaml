@@ -158,7 +158,9 @@ jobs:
           # Workflows opt-in by including `# template-sync: managed` near the
           # top of the file. This lets the template add new automation
           # workflows without anyone having to remember to edit SYNC_PATHS —
-          # the marker travels with the file.
+          # the marker travels with the file. Note: discovery scans only the
+          # current template HEAD, so deleting a managed workflow upstream
+          # won't trigger auto-deletion downstream — coordinate manually.
           for wf in _template/.github/workflows/*.yaml _template/.github/workflows/*.yml; do
             [ -e "$wf" ] || continue
             # Marker must be the very first line — strict to avoid matching
