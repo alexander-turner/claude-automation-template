@@ -91,3 +91,24 @@ def test_fails_when_settings_missing(tmp_path: Path, copy_script) -> None:
     result = run_validator(tmp_path, copy_script)
     assert result.returncode == 1
     assert ".claude/settings.json not found" in result.stdout
+
+
+def test_rejects_non_executable_claude_hook(tmp_path: Path, copy_script) -> None:
+    """Hooks under .claude/hooks/ must also be executable."""
+    write_settings(tmp_path, {"hooks": {}})
+    make_hook(tmp_path, ".claude/hooks/session-setup.sh", executable=False)
+    result = run_validator(tmp_path, copy_script)
+    assert result.returncode == 1
+    assert "not executable" in result.stdout + result.stderr
+
+
+def test_rejects_hook_with_syntax_error(tmp_path: Path, copy_script) -> None:
+    """Hook scripts with bash syntax errors must be caught."""
+    write_settings(tmp_path, {"hooks": {}})
+    path = tmp_path / ".hooks" / "bad.sh"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("#!/usr/bin/env bash\nif [[\n")  # unclosed [[ is a syntax error
+    path.chmod(0o755)
+    result = run_validator(tmp_path, copy_script)
+    assert result.returncode == 1
+    assert "syntax error" in result.stdout + result.stderr

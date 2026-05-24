@@ -72,15 +72,15 @@ fi
 # their bot name this will silently return no results.
 SOCKET_FOUND=false
 for pr_num in $(gh api "repos/${REPO}/pulls?state=open&per_page=5" --jq '.[].number' 2>/dev/null); do
-  SOCKET_COMMENTS=$(gh api "repos/${REPO}/issues/${pr_num}/comments?per_page=30" \
-    --jq '[.[] | select(.user.login == "socket-security[bot]")] | length' \
-    2>/dev/null || echo "0")
-  if [ "$SOCKET_COMMENTS" != "0" ]; then
+  # Fetch comments once and reuse the result for both the presence check and
+  # content extraction, halving the number of API calls.
+  socket_bodies=$(gh api "repos/${REPO}/issues/${pr_num}/comments?per_page=30" \
+    --jq '.[] | select(.user.login == "socket-security[bot]") | .body' \
+    2>/dev/null || true)
+  if [ -n "$socket_bodies" ]; then
     SOCKET_FOUND=true
     echo "### PR #${pr_num}" >>"$REPORT_PATH"
-    gh api "repos/${REPO}/issues/${pr_num}/comments?per_page=30" \
-      --jq '.[] | select(.user.login == "socket-security[bot]") | .body' \
-      2>/dev/null >>"$REPORT_PATH" || true
+    printf '%s\n' "$socket_bodies" >>"$REPORT_PATH"
     echo "" >>"$REPORT_PATH"
   fi
 done
