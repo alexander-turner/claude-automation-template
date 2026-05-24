@@ -81,9 +81,11 @@ for pr_num in $(gh api "repos/${REPO}/pulls?state=open&per_page=5" --jq '.[].num
     >"$socket_tmp" 2>/dev/null || true
   if [ -s "$socket_tmp" ]; then
     socket_found=true
-    echo "### PR #${pr_num}" >>"$REPORT_PATH"
-    cat "$socket_tmp" >>"$REPORT_PATH"
-    echo "" >>"$REPORT_PATH"
+    {
+      echo "### PR #${pr_num}"
+      cat "$socket_tmp"
+      echo ""
+    } >>"$REPORT_PATH"
   fi
 done
 if [ "$socket_found" = "false" ]; then
