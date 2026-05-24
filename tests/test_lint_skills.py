@@ -89,3 +89,12 @@ def test_warns_when_examples_missing(tmp_path: Path, copy_script) -> None:
     result = run_lint(tmp_path, copy_script, skill)
     assert result.returncode == 0
     assert "Examples" in result.stderr
+
+
+def test_rejects_unclosed_frontmatter(tmp_path: Path, copy_script) -> None:
+    """A skill missing the closing '---' delimiter should be rejected."""
+    body = "---\nname: x\ndescription: A skill. With two sentences.\n# body without closing ---\n"
+    skill = write_skill(tmp_path, "broken", body)
+    result = run_lint(tmp_path, copy_script, skill)
+    assert result.returncode == 1
+    assert "closing" in result.stderr

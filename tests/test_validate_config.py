@@ -60,15 +60,22 @@ def _command(path: str) -> dict:
             1,
             "missing.sh",
         ),
-        # Hook file exists but isn't executable
+        # Hook file exists but isn't executable (.hooks/)
         (
             {"hooks": {}},
             [(".hooks/pre-commit", False)],
             1,
             "not executable",
         ),
+        # Hook file under .claude/hooks/ isn't executable
+        (
+            {"hooks": {}},
+            [(".claude/hooks/session-setup.sh", False)],
+            1,
+            "not executable",
+        ),
     ],
-    ids=["valid", "missing-hook", "non-executable-hook"],
+    ids=["valid", "missing-hook", "non-executable-hook", "non-executable-claude-hook"],
 )
 def test_validate_config(
     tmp_path: Path,
@@ -91,3 +98,15 @@ def test_fails_when_settings_missing(tmp_path: Path, copy_script) -> None:
     result = run_validator(tmp_path, copy_script)
     assert result.returncode == 1
     assert ".claude/settings.json not found" in result.stdout
+
+
+def test_rejects_hook_with_syntax_error(tmp_path: Path, copy_script) -> None:
+    """Hook scripts with bash syntax errors must be caught with a useful message."""
+    write_settings(tmp_path, {"hooks": {}})
+    path = tmp_path / ".hooks" / "bad.sh"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("#!/usr/bin/env bash\nif [[\n")  # unclosed [[ is a syntax error
+    path.chmod(0o755)
+    result = run_validator(tmp_path, copy_script)
+    assert result.returncode == 1
+    assert "has a bash syntax error" in result.stdout + result.stderr
