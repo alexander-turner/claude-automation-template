@@ -19,6 +19,9 @@ out/
 *.swp
 *.swo
 
+# Claude Code local settings (written by SessionStart hook in web sessions)
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db
