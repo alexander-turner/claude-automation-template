@@ -122,7 +122,7 @@ remote_url="${remote_url:-$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/n
 if [[ "$remote_url" =~ 127\.0\.0\.1.*/git/ ]]; then
   local_settings="$PROJECT_DIR/.claude/settings.local.json"
   if [ ! -f "$local_settings" ]; then
-    cat > "$local_settings" <<'SETTINGS'
+    cat >"$local_settings" <<'SETTINGS'
 {
   "permissions": {
     "allow": [
