@@ -29,7 +29,12 @@ elif command -v npx >/dev/null 2>&1; then
   npx --yes --package=@commitlint/cli --package=@commitlint/config-conventional \
     commitlint --edit "$1" --config "$config"
 else
-  echo "ERROR: commitlint not available and neither pnpm nor npx found." >&2
-  echo "Run 'pnpm install' to set up hooks, or install Node.js." >&2
-  exit 1
+  # Shell fallback: validate conventional commit format without Node.js
+  msg=$(head -1 "$1")
+  if ! echo "$msg" | grep -qE '^(feat|fix|refactor|docs|test|chore|ci|style|perf|build)(\(.+\))?!?: .+'; then
+    echo "ERROR: Commit message must follow Conventional Commits format:" >&2
+    echo "  <type>(<scope>): <description>" >&2
+    echo "  Types: feat, fix, refactor, docs, test, chore, ci, style, perf, build" >&2
+    exit 1
+  fi
 fi

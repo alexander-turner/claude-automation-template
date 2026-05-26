@@ -1,6 +1,7 @@
 #!/bin/bash
 # Pre-commit hook: Format and lint staged files
-# Customize the lint-staged configuration in package.json
+# Uses lint-staged (Node) when available, falls back to pre-commit (Python)
+# or direct formatter invocation for non-Node projects.
 
 set -euo pipefail
 
@@ -12,20 +13,51 @@ if [ -d "$git_root/.venv/bin" ]; then
   export PATH="$git_root/.venv/bin:$PATH"
 fi
 
-# Skip if this is not a Node project
-[ -f "$git_root/package.json" ] || exit 0
-
-# Check if lint-staged is installed
-if [ ! -f "$git_root/node_modules/.bin/lint-staged" ]; then
-  echo "ERROR: lint-staged not found. Run 'pnpm install' to install it." >&2
-  exit 1
+# Strategy 1: lint-staged (Node projects with dependencies installed)
+if [ -f "$git_root/node_modules/.bin/lint-staged" ]; then
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm exec lint-staged --allow-empty
+  elif command -v npm >/dev/null 2>&1; then
+    npx lint-staged --allow-empty
+  else
+    echo "Warning: Neither pnpm nor npm found. Skipping lint-staged." >&2
+  fi
+  exit 0
 fi
 
-# Run lint-staged (via pnpm or npm)
-if command -v pnpm >/dev/null 2>&1; then
-  pnpm exec lint-staged --allow-empty
-elif command -v npm >/dev/null 2>&1; then
-  npx lint-staged --allow-empty
-else
-  echo "Warning: Neither pnpm nor npm found. Skipping lint-staged." >&2
+# Strategy 2: pre-commit framework (works for any language)
+if [ -f "$git_root/.pre-commit-config.yaml" ] && command -v pre-commit >/dev/null 2>&1; then
+  staged=$(git diff --cached --name-only --diff-filter=ACMR)
+  if [ -n "$staged" ]; then
+    # shellcheck disable=SC2086
+    pre-commit run --files $staged || exit 1
+  fi
+  exit 0
+fi
+
+# Strategy 3: run available formatters directly on staged files
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+run_on() {
+  local pattern="$1"
+  shift
+  local matched
+  matched=$(echo "$staged" | grep -E "$pattern" || true)
+  [ -z "$matched" ] && return 0
+  echo "$matched" | xargs "$@"
+  echo "$matched" | xargs git add
+}
+
+if command -v ruff >/dev/null 2>&1; then
+  run_on '\.py$' ruff check --fix
+  run_on '\.py$' ruff format
+fi
+
+if command -v shfmt >/dev/null 2>&1; then
+  run_on '(\.(sh|bash)$|^\.hooks/)' shfmt -i 2 -w
+fi
+
+if command -v prettier >/dev/null 2>&1; then
+  run_on '\.(json|ya?ml|md|css|scss|[jt]sx?)$' prettier --write
 fi
