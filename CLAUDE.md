@@ -32,6 +32,8 @@ Use the `/pr-creation` skill. Before writing a PR description, check for `CONT
 - Smart quotes (U+201C/U+201D/U+2018/U+2019): use Unicode escapes in code, centralize constants, ask user to verify output
 - Fail loudly with clear error messages, only remove error reporting if user asks specifically
 - Shell scripts: never use `|| true` to silence an expected non-zero exit—it silently swallows unexpected failures too. Branch on the exit code instead: `cmd; rc=$?; [ "${rc:-0}" -le N ] || exit "$rc"`.
+- Shell scripts: when checking whether a URL belongs to a specific host, use anchored patterns (`*://github.com/*` or `git@github.com:*`), not substring matching (`*github.com*`)—the latter also matches `github.com.attacker.tld`.
+- Shell scripts / shellcheck: avoid non-ASCII characters in strings that appear in shellcheck’s diagnostic output stream (e.g. test-name labels). `→` breaks shellcheck’s output mid-report (`commitBuffer: invalid argument`); use ASCII `->` instead.
 
 ## Self-Critique Loop
 
