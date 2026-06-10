@@ -1,5 +1,10 @@
 # CLAUDE.md
 
+## Working style
+- No running commentary or filler — don't narrate tool use, restate my request, or recap after each step. Just do the work.
+- Save all explanation for the END: a short overview of what changed and how it fits, plus anything I need to run/use it. Proportional to the change.
+- Be direct. Flag real risks once; skip caveats I didn't ask for. Don't claim it works unless you ran it or read the code.
+
 ## Commands
 
 ```bash
@@ -12,7 +17,7 @@ Use pnpm (not npm) for all package operations.
 
 ## Personal Notes
 
-Keep recurring personal nitpicks and review-feedback patterns in `CLAUDE.local.md` (gitignored), separate from the committed project rules here. Prune entries as the habits become automatic, and promote anything that should apply team-wide into this file.
+Keep recurring personal nitpicks and review-feedback patterns in `CLAUDE.local.md` (gitignored), separate from the committed project rules here. Prune entries as the habits become automatic, and promote anything that should apply team-wide into this file. 
 
 ## Git Workflow
 
@@ -20,7 +25,7 @@ Commits MUST use [Conventional Commits](https://www.conventionalcommits.org/) (`
 
 ## Pull Requests
 
-Use the `/pr-creation` skill. Before writing a PR description, check for `CONTRIBUTING.md` or `.github/PULL_REQUEST_TEMPLATE.md` in the target repo and follow its conventions. **Never** include `claude.ai` URLs, session links, or AI-tool attribution links in PRs. Include a `## Lessons Learned` section **only** for generalizable changes to the template files (e.g., `.claude/`, `.hooks/`, `.github/workflows/`, `CLAUDE.md`, `setup.sh`) that would benefit other downstream repos—the `phone-home.yaml` workflow propagates these to the template repo on merge. Repo-specific fixes do not belong here. Each lesson must be actionable: specify **what** to change in the template, **where** (template file/component), and **why**. Delete the section entirely if there are no template-level lessons—empty or vague lessons create noise.
+Use the `/pr-creation` skill. For contributions to others' repos, before writing a PR description, check for `CONTRIBUTING.md` or `.github/PULL_REQUEST_TEMPLATE.md` in the target repo and follow its conventions. **Never** include `claude.ai` URLs, session links, or AI-tool attribution links in PRs. Include a `## Lessons Learned` section **only** for generalizable changes to the template files (e.g., `.claude/`, `.hooks/`, `.github/workflows/`, `CLAUDE.md`, `setup.sh`) that would benefit other downstream repos—the `phone-home.yaml` workflow propagates these to the template repo on merge. Repo-specific fixes do not belong here. Each lesson must be actionable: specify **what** to change in the template, **where** (template file/component), and **why**. Delete the section entirely if there are no template-level lessons—empty or vague lessons create noise.
 
 **Skip the `## Lessons Learned` section entirely when the PR targets the `claude-automation-template` repo itself.** `phone-home.yaml` propagates lessons _from_ downstream repos _into_ the template; a change made directly in the template is already there, so a lessons section here propagates nothing and is pure noise.
 
