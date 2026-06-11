@@ -5,6 +5,24 @@
     "CLAUDE_CODE_AUTO_BACKGROUND_TASKS": "1",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ],
+    "allow": [
+      "Bash(pnpm build)",
+      "Bash(pnpm check:*)",
+      "Bash(pnpm format)",
+      "Bash(pnpm install)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pre-commit run:*)",
+      "Bash(uv run pytest:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

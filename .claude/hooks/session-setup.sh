@@ -167,9 +167,9 @@ if [[ "$remote_url" =~ 127\.0\.0\.1.*/git/ ]]; then
 {
   "permissions": {
     "allow": [
-      "Edit .claude/**",
-      "Write .claude/**",
-      "Read .claude/**"
+      "Edit(.claude/**)",
+      "Write(.claude/**)",
+      "Read(.claude/**)"
     ]
   }
 }
