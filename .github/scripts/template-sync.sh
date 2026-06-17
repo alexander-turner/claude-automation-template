@@ -246,7 +246,7 @@ record_no_base_conflict() {
 # project-specific files that were never in the template.
 if [ -n "$PREV_SHA" ]; then
   if ! git -C _template ls-tree -r --name-only "$PREV_SHA" 2>/dev/null >"$PREV_TEMPLATE_FILES"; then
-    : >"$PREV_TEMPLATE_FILES"  # PREV_SHA not in template history; treat as no prior files
+    : >"$PREV_TEMPLATE_FILES" # PREV_SHA not in template history; treat as no prior files
   fi
 fi
 
