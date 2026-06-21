@@ -1,13 +1,107 @@
 """Smoke tests for .claude/hooks/ scripts."""
 
+import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SESSION_SETUP = REPO_ROOT / ".claude" / "hooks" / "session-setup.sh"
+SAFE_LAUNCH_PARSE = REPO_ROOT / ".claude" / "hooks" / "safe-launch-parse.py"
+
+
+def _run_parser(payload: dict, project_dir: str = "/project") -> tuple[str, str]:
+    """Run safe-launch-parse.py with *payload* on stdin; return (tool_name, path)."""
+    result = subprocess.run(
+        [sys.executable, str(SAFE_LAUNCH_PARSE), project_dir],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+    )
+    lines = result.stdout.splitlines()
+    tool_name = lines[0] if len(lines) > 0 else ""
+    path = lines[1] if len(lines) > 1 else ""
+    return tool_name, path
+
+
+@pytest.mark.parametrize(
+    "payload, expected_tool, expected_path_suffix",
+    [
+        # Edit: file_path in tool_input
+        (
+            {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "/project/.claude/hooks/safe-launch.sh"},
+            },
+            "Edit",
+            ".claude/hooks/safe-launch.sh",
+        ),
+        # Write: file_path in tool_input
+        (
+            {
+                "tool_name": "Write",
+                "tool_input": {"file_path": "/project/.hooks/pre-commit"},
+            },
+            "Write",
+            ".hooks/pre-commit",
+        ),
+        # MultiEdit: path lives inside edits[0].file_path, NOT tool_input.file_path
+        (
+            {
+                "tool_name": "MultiEdit",
+                "tool_input": {
+                    "edits": [
+                        {
+                            "file_path": "/project/.claude/hooks/session-setup.sh",
+                            "old_string": "x",
+                            "new_string": "y",
+                        },
+                        {
+                            "file_path": "/project/other.sh",
+                            "old_string": "a",
+                            "new_string": "b",
+                        },
+                    ]
+                },
+            },
+            "MultiEdit",
+            ".claude/hooks/session-setup.sh",
+        ),
+        # MultiEdit with empty edits array → empty path (safe default)
+        (
+            {"tool_name": "MultiEdit", "tool_input": {"edits": []}},
+            "MultiEdit",
+            "",
+        ),
+        # Bash: no file path
+        (
+            {"tool_name": "Bash", "tool_input": {"command": "git push"}},
+            "Bash",
+            "",
+        ),
+        # Malformed JSON handled by the caller (parser should still exit 0)
+        (
+            {},
+            "",
+            "",
+        ),
+    ],
+    ids=["Edit", "Write", "MultiEdit", "MultiEdit-empty", "Bash", "empty-payload"],
+)
+def test_safe_launch_parse(
+    payload: dict, expected_tool: str, expected_path_suffix: str
+) -> None:
+    tool_name, path = _run_parser(payload)
+    assert tool_name == expected_tool
+    if expected_path_suffix:
+        assert path.endswith(expected_path_suffix), (
+            f"path={path!r} expected suffix {expected_path_suffix!r}"
+        )
+    else:
+        assert path == ""
 
 
 @pytest.fixture
