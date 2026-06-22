@@ -1,9 +1,10 @@
 """Tests for .github/scripts/assemble-changelog.mjs (the CLI surface).
 
-The module's exported helpers are unit-tested in-process by claude-guard's node
-test; here we exercise the behavior the release workflow actually depends on by
-driving the CLI (`--check` / `--draft` / `--release`) the way the bash scripts
-do, so a regression in the contract those scripts rely on fails CI.
+These drive the assembler's CLI (`--check` / `--draft` / `--release`) the way the
+release bash scripts do, so a regression in the contract those scripts depend on
+fails CI. The CLI exercises the exported helpers end to end (fragment parsing,
+category ordering, the changelog roll); there is no separate in-repo unit test of
+the helper functions.
 """
 
 import shutil
@@ -88,6 +89,15 @@ def test_draft_empty_when_no_fragments(tmp_path: Path) -> None:
     assert result.stdout.strip() == ""
 
 
+def test_dotted_fragment_id_is_accepted(tmp_path: Path) -> None:
+    # The id segment is greedy: only the trailing `.<category>.md` is the
+    # category, so a multi-segment id like `1.2` stays valid.
+    write_fragment(tmp_path, "1.2.added.md", "- dotted id")
+    result = run(tmp_path, "--draft")
+    assert result.returncode == 0
+    assert result.stdout.strip() == "### Added\n\n- dotted id"
+
+
 def test_invalid_fragment_name_fails_loudly(tmp_path: Path) -> None:
     write_fragment(tmp_path, "oops.md", "- x")
     result = run(tmp_path, "--check")
@@ -150,6 +160,14 @@ def test_release_rejects_stray_positional(tmp_path: Path) -> None:
     result = run(tmp_path, "--release", "0.5.0", "2026-06-14")
     assert result.returncode == 1
     assert "unexpected argument(s) after --release" in result.stderr
+
+
+def test_release_date_flag_without_value_fails(tmp_path: Path) -> None:
+    write_changelog(tmp_path)
+    write_fragment(tmp_path, "1.added.md", "- a feature")
+    result = run(tmp_path, "--release", "0.5.0", "--date")
+    assert result.returncode == 1
+    assert "--date requires a YYYY-MM-DD argument" in result.stderr
 
 
 def test_unknown_mode_prints_general_usage(tmp_path: Path) -> None:

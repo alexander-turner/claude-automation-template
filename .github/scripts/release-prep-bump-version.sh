@@ -5,7 +5,7 @@
 # $RUNNER_TEMP. The in-tree copies are used only to bootstrap the very PR that first
 # adds these scripts, when the base branch has no copy yet.
 # Env: BASE_REF, RUNNER_TEMP
-set -eo pipefail
+set -euo pipefail
 script=.github/scripts/release-prep.sh
 assembler=.github/scripts/assemble-changelog.mjs
 git fetch --quiet origin "$BASE_REF"
