@@ -43,7 +43,7 @@ esac
 # version decision never depends on it. npm authentication uses OIDC trusted
 # publishing (id-token: write in the workflow), so no NODE_AUTH_TOKEN /
 # NPM_TOKEN is required.
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
   log "Note: ANTHROPIC_API_KEY is not set. Changelog prose will fall back to a plain commit list."
 fi
 
@@ -78,7 +78,7 @@ CURRENT_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
 # X.Y.Z so the arithmetic bump below can't silently misfire. Empty -> 0.0.0
 # (first release); any other non-semver value fails loudly.
 CURRENT_VERSION=$(printf '%s\n' "$CURRENT_VERSION" | head -n1)
-[ -z "$CURRENT_VERSION" ] && CURRENT_VERSION="0.0.0"
+[[ -z "$CURRENT_VERSION" ]] && CURRENT_VERSION="0.0.0"
 if ! [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   log "Error: npm returned a non-semver current version: '$CURRENT_VERSION'. Refusing to guess a bump."
   exit 1
@@ -88,11 +88,11 @@ log "Current npm version: $CURRENT_VERSION"
 # Find the latest version tag to determine which commits to analyze
 LAST_TAG=$(git describe --tags --match "v*" --abbrev=0 HEAD 2>/dev/null || echo "")
 
-if [ -n "$LAST_TAG" ]; then
+if [[ -n "$LAST_TAG" ]]; then
   # Skip if HEAD is already tagged (no new commits since last release)
   LAST_TAG_SHA=$(git rev-list -1 "$LAST_TAG")
   HEAD_SHA=$(git rev-parse HEAD)
-  if [ "$LAST_TAG_SHA" = "$HEAD_SHA" ]; then
+  if [[ "$LAST_TAG_SHA" = "$HEAD_SHA" ]]; then
     log "No new commits since $LAST_TAG. Skipping."
     exit 0
   fi
@@ -117,7 +117,7 @@ fi
 # gracefully rather than failing the release.
 COMMITS=$(echo "$COMMITS_RAW" | head -20 | cut -c1-100 | head -c 2000)
 
-if [ -z "$COMMITS" ]; then
+if [[ -z "$COMMITS" ]]; then
   log "No commits to analyze. Skipping."
   exit 0
 fi
@@ -132,7 +132,7 @@ log "Conventional Commits bump level: $BUMP"
 # The block runs from the "## Unreleased" heading up to (but not including) the
 # next "## " heading or end of file.
 UNRELEASED_CONTENT=""
-if [ -f CHANGELOG.md ]; then
+if [[ -f CHANGELOG.md ]]; then
   UNRELEASED_CONTENT=$(awk '
     /^## Unreleased[[:space:]]*$/ { collecting = 1; next }
     collecting && /^## / { collecting = 0 }
@@ -145,14 +145,14 @@ fi
 # the existing Unreleased content, or a plain bullet list of commit subjects.
 # It never blocks or alters the version decision made above.
 CHANGELOG_FALLBACK="$UNRELEASED_CONTENT"
-if [ -z "$CHANGELOG_FALLBACK" ]; then
+if [[ -z "$CHANGELOG_FALLBACK" ]]; then
   CHANGELOG_FALLBACK="### Changed
 
 $COMMITS"
 fi
 CHANGELOG_SECTION="$CHANGELOG_FALLBACK"
 
-if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
   # The prompt uses clear delimiters to resist injection from commit messages
   # and the existing changelog block.
   PROMPT="Draft the body of the next CHANGELOG entry for these commits.
@@ -281,7 +281,7 @@ log "✅ Published $PACKAGE_NAME@$NEW_VERSION"
 # Promote "## Unreleased" to a dated version section in CHANGELOG.md, using the
 # drafted body. The helper exits 0 even on its own errors: the package is
 # already published, so a CHANGELOG hiccup must not abort the tag push below.
-if [ -f CHANGELOG.md ] && [ -n "$CHANGELOG_SECTION" ]; then
+if [[ -f CHANGELOG.md ]] && [[ -n "$CHANGELOG_SECTION" ]]; then
   RELEASE_DATE=$(date -u +%Y-%m-%d)
   NEW_VERSION="$NEW_VERSION" \
     RELEASE_DATE="$RELEASE_DATE" \
@@ -314,7 +314,7 @@ fi
 # Tag only when the release-docs commit (if any) actually reached the branch.
 # Otherwise the local HEAD is an orphan commit nobody can see, and tagging it
 # would leave v$NEW_VERSION pointing at a SHA outside the branch history.
-if [ "$RELEASE_DOCS_PUSH_FAILED" = "1" ]; then
+if [[ "$RELEASE_DOCS_PUSH_FAILED" = "1" ]]; then
   log "⚠️ Skipping tag v$NEW_VERSION because the release-docs commit did not reach $DEFAULT_BRANCH."
   log "    Release was published to npm; reconcile by pushing the release-docs commit and tagging manually."
   exit 1
