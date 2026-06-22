@@ -53,6 +53,25 @@ env:
   # exclude the template's equivalents here to avoid duplicate CI jobs.
   # Common candidates: .github/workflows/node-tests.yaml,
   # .github/workflows/lint.yaml, .github/workflows/format-check.yaml
+  #
+  # VERSIONED-APP-ONLY: the release flow below only makes sense for a repo that
+  # is published/consumed as a versioned app with a semver package.json (npm
+  # package, CLI, etc.). It bumps package.json, rolls CHANGELOG.md from
+  # changelog.d/ fragments, and tags/publishes GitHub Releases. tag-release runs
+  # on EVERY push to the default branch and FAILS LOUDLY if package.json has no
+  # strict X.Y.Z version — so in a repo that is not a versioned release (e.g. a
+  # website like TurnTrout.com) it is noise at best and a red X at worst. Such
+  # repos should list all of these here to opt out:
+  #   .github/workflows/release-prep.yaml
+  #   .github/workflows/tag-release.yaml
+  #   .github/scripts/release-prep-bump-version.sh
+  #   .github/scripts/release-prep.sh
+  #   .github/scripts/tag-release.sh
+  #   .github/scripts/changelog-notes.sh
+  #   .github/scripts/assemble-changelog.mjs
+  #   .github/scripts/lib/retry.bash
+  # (CHANGELOG.md and changelog.d/ live outside SYNC_PATHS and never sync, so a
+  # versioned consumer must create those two itself to bootstrap the flow.)
   EXCLUDE_PATHS: ""
 
 concurrency:
