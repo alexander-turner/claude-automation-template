@@ -45,7 +45,7 @@ jobs:
 
       - name: Bump version on the PR branch
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.GH_ACTION_ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: bash .github/scripts/release-prep-bump-version.sh

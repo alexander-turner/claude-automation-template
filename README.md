@@ -94,12 +94,24 @@ These run inside Claude Code sessions (local CLI or cloud), not in CI.
 | `pre-commit.yaml`                  | Runs pre-commit hooks in CI                                           |
 | `validate-config.yaml`             | Validates `.claude/` and `.hooks/` config on every push               |
 | `dependabot-auto-merge.yaml`       | Auto-merges minor/patch Dependabot PRs after CI passes                |
+| `release-prep.yaml`                | On a `release`-labeled PR, bumps `package.json` + rolls the changelog |
+| `tag-release.yaml`                 | Post-merge, tags `vX.Y.Z` and publishes the GitHub Release            |
 
 #### Required checks & branch protection
 
 Each PR-gating workflow (`format-check`, `lint`, `node-tests`, `pre-commit`, `validate-config`) ends with an `if: always()` summary job—`format-check-passed`, `lint-passed`, `node-tests-passed`, `pre-commit-passed`, `validate-config-passed`—that `needs:` the real job(s) and passes only when they all succeed (or skip). **Mark these `*-passed` jobs as Required in branch protection, not the underlying jobs.** A job that is cancelled or skipped never reports a status to GitHub, so a directly-Required job can leave a PR stuck “pending” forever; the always-running summary job (`if: always()` plus a `contains(needs.*.result, …)` guard) reports a definitive pass/fail instead.
 
 > **Caveat:** the summary job only helps when its workflow runs at all. `lint`, `node-tests`, and `validate-config` use `paths` filters, so on a PR that doesn’t touch their paths the _entire_ workflow (summary job included) is skipped and posts nothing. If you mark those `*-passed` checks Required, drop the workflow’s `paths` filter (let the job run and short-circuit internally) so the gate always reports.
+
+### Releases & changelog (versioned apps only)
+
+`release-prep.yaml` + `tag-release.yaml` automate semver releases for repos published as a **versioned app** (an npm package, CLI, etc. with a semver `package.json`):
+
+1. Record each user-facing change as a fragment under `changelog.d/` (`<id>.<category>.md`, e.g. `592.fixed.md`)—see [`changelog.d/README.md`](changelog.d/README.md). Feature PRs never edit `CHANGELOG.md` directly, so it stops being a merge-conflict hotspot.
+2. Label the PR `release`. `release-prep` classifies the pending fragments as a conservative **patch/minor** bump (never major—a breaking release stays a human decision), bumps `package.json`, rolls the fragments into a new `CHANGELOG.md` section, and commits that onto the PR branch so the bump merges _with_ the PR.
+3. On merge, `tag-release` pushes the `vX.Y.Z` tag and publishes a GitHub Release with that version’s changelog section as its notes.
+
+> **Not a versioned app?** `tag-release` runs on every default-branch push and fails loudly without a semver `package.json`, so a repo that isn’t a versioned release (e.g. a website) should opt out by adding the release-flow files to `EXCLUDE_PATHS` in `template-sync.yaml`—the full list is documented in that file. `CHANGELOG.md` and `changelog.d/` live outside the synced paths, so a versioned consumer must create those two itself to bootstrap the flow.
 
 ### MCP Servers (`.mcp.json`)
 
@@ -157,9 +169,17 @@ Template improvements sync daily at 9am UTC via `template-sync.yaml`. You can al
 
 Changes arrive as a PR for you to review. The sync uses a 3-way merge that preserves local customizations in synced files—if there’s a conflict, Claude is asked to resolve it while keeping your project-specific changes intact.
 
-### Token Setup
+### Secrets & repository settings
 
-Create a **fine-grained personal access token** with these permissions on your repo:
+Repository **settings and secrets are never copied** when you create a repo from a template or when `template-sync` runs—both only move files. So each consuming repo configures these once. The workflows read:
+
+| Secret                | Used by                                                      | Required?                             |
+| --------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| `ANTHROPIC_API_KEY`   | `claude`, `security-vulnerability-scan`, `release-prep`      | For Claude-backed workflows           |
+| `TEMPLATE_SYNC_TOKEN` | `template-sync`, `phone-home`, `release-prep`, `tag-release` | Optional—falls back to `GITHUB_TOKEN` |
+| `PUSH_TOKEN`          | `security-vulnerability-scan`                                | Optional—falls back to `GITHUB_TOKEN` |
+
+`TEMPLATE_SYNC_TOKEN` should be a **fine-grained PAT** (it lets sync/release PRs touch workflow files and clear tag protection, which `GITHUB_TOKEN` can’t):
 
 | Permission      | Access         |
 | --------------- | -------------- |
@@ -167,7 +187,9 @@ Create a **fine-grained personal access token** with these permissions on your r
 | `workflows`     | Read and write |
 | `pull requests` | Read and write |
 
-Add it as a repository secret named **`TEMPLATE_SYNC_TOKEN`**.
+**Enable [GitHub security features](https://docs.github.com/en/code-security) per repo** (Settings → Code security): secret scanning, push protection, and Dependabot alerts + security updates. The committed `.github/dependabot.yml` assumes Dependabot is on at the repo level. These are settings, not files, so they don’t sync—turn them on when you adopt the template.
+
+> **Doing this across many repos?** Hosting them in a GitHub **organization** lets you set the secrets above **once as org secrets** (scoped to all repos) and enable the security features above via org-level **default code-security settings**, so every new repo inherits them with zero per-repo work. The org route is an optional convenience—the template works identically on a personal account, you just configure each repo individually.
 
 ## Project Structure
 
@@ -185,6 +207,8 @@ Add it as a repository secret named **`TEMPLATE_SYNC_TOKEN`**.
 │   └── dependabot.yml      # Dependabot configuration
 ├── config/                 # Shared configuration (e.g., JavaScript linting)
 ├── tests/                  # Python tests for hooks and config validation
+├── changelog.d/            # Changelog fragments (versioned apps; see its README)
+├── CHANGELOG.md            # Assembled changelog (versioned apps)
 ├── CLAUDE.md               # Instructions for Claude Code sessions
 ├── package.json            # Node.js deps + lint-staged config
 ├── pyproject.toml          # Python project config (ruff, pytest)
