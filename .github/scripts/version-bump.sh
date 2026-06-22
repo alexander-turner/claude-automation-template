@@ -22,11 +22,22 @@ log() { echo "$@" >&2; }
 
 # Self-publish guard. `private: true` marks a package that must never reach the
 # registry (npm itself refuses to publish it); for this flow it also means "this
-# repo is not a versioned npm app", so skip the whole release.
-if [ "$(node -p "require('./package.json').private === true")" = "true" ]; then
+# repo is not a versioned npm app", so skip the whole release. This is the sole
+# safeguard against the template publishing itself, so it fails CLOSED: anything
+# other than a clean true/false from node (missing/malformed package.json, no
+# node) aborts the run rather than falling through to publish.
+IS_PRIVATE=$(node -p "require('./package.json').private === true" 2>/dev/null || echo "error")
+case "$IS_PRIVATE" in
+true)
   log "package.json has \"private\": true; this repo does not publish to npm. Skipping."
   exit 0
-fi
+  ;;
+false) ;;
+*)
+  log "Error: could not read package.json \"private\" field (got: '$IS_PRIVATE'). Refusing to publish."
+  exit 1
+  ;;
+esac
 
 # ANTHROPIC_API_KEY is optional: it is used only for changelog prose. The
 # version decision never depends on it. npm authentication uses OIDC trusted
@@ -62,6 +73,16 @@ determine_bump() {
 # Get the latest published version from npm (source of truth)
 PACKAGE_NAME=$(node -p "require('./package.json').name")
 CURRENT_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
+# `npm view` can print nothing on a success exit (never-published package) or
+# emit a prerelease like `1.2.3-beta.0`; take the first line and require strict
+# X.Y.Z so the arithmetic bump below can't silently misfire. Empty -> 0.0.0
+# (first release); any other non-semver value fails loudly.
+CURRENT_VERSION=$(printf '%s\n' "$CURRENT_VERSION" | head -n1)
+[ -z "$CURRENT_VERSION" ] && CURRENT_VERSION="0.0.0"
+if ! [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  log "Error: npm returned a non-semver current version: '$CURRENT_VERSION'. Refusing to guess a bump."
+  exit 1
+fi
 log "Current npm version: $CURRENT_VERSION"
 
 # Find the latest version tag to determine which commits to analyze
@@ -88,9 +109,12 @@ else
   DIFF_STAT=$(git show --stat HEAD 2>/dev/null || echo "Unable to get diff")
 fi
 
-# Cap commit-message length: truncate each line, limit total length. Bytes pass
-# through verbatim so non-ASCII characters in commit subjects survive — the JSON
-# body is built via `jq -n --arg`, which handles arbitrary bytes safely.
+# Cap commit-message length: truncate each line, limit total length. The
+# `head -c` cap is byte-based and can split a multibyte UTF-8 character at the
+# tail; if it does, the only consequence is that `jq -n --arg` rejects the
+# invalid sequence and the Claude prose step falls back to the plain commit list
+# (the version decision never uses $COMMITS), so a corrupted tail degrades
+# gracefully rather than failing the release.
 COMMITS=$(echo "$COMMITS_RAW" | head -20 | cut -c1-100 | head -c 2000)
 
 if [ -z "$COMMITS" ]; then
@@ -299,5 +323,11 @@ fi
 # Tag the release for future commit-range detection. Tag HEAD (which now
 # includes the release-docs commit, if any) so a re-trigger sees HEAD == tag SHA.
 git tag "v$NEW_VERSION"
-retry_cmd 4 2 git push origin "v$NEW_VERSION" ||
-  log "⚠️ Failed to push tag v$NEW_VERSION. Next run may re-analyze these commits."
+# Fail loudly if the tag never lands: the tag is what stops the next run from
+# re-analyzing these commits (re-drafting the changelog, re-pushing release
+# docs), so a silent failure here would quietly corrupt the next release.
+if ! retry_cmd 4 2 git push origin "v$NEW_VERSION"; then
+  log "Error: failed to push tag v$NEW_VERSION after retries. The release is published;"
+  log "       push the tag manually so the next run does not re-analyze these commits."
+  exit 1
+fi

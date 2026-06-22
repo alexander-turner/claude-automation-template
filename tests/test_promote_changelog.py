@@ -87,6 +87,17 @@ def test_preserves_content_after_unreleased_block(tmp_path: Path) -> None:
     assert "- Old thing." in content
 
 
+def test_unreleased_is_last_heading(tmp_path: Path) -> None:
+    # Unreleased runs to EOF (afterBlock is empty); the dated section is still
+    # inserted and the empty Unreleased block is preserved above it.
+    path = write_changelog(tmp_path, "## Unreleased\n")
+    run(tmp_path)
+
+    content = path.read_text()
+    assert content.endswith("### Added\n\n- A new flag.\n")
+    assert content.index("## Unreleased") < content.index("## [1.2.3]")
+
+
 def test_strips_model_emitted_version_heading(tmp_path: Path) -> None:
     path = write_changelog(tmp_path, "## Unreleased\n")
     run(tmp_path, section="## [1.2.3] - 2026-06-22\n\n### Fixed\n\n- A bug.")
