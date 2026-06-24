@@ -26,19 +26,19 @@ SECRET_NAMES=(
 # "selected" requires you to wire repo access separately.
 SECRET_VISIBILITY="all"
 
-# --- Ruleset (branch protection + required checks) ----------------------------
+# --- Ruleset (branch protection) ----------------------------------------------
+# The org ruleset carries only repo-agnostic rules (block deletion + force-push,
+# optional required-PR). It deliberately does NOT pin repo-specific required
+# status checks: repos run different tests, and requiring a context a repo never
+# emits hangs that repo's PRs at pending forever. Per-repo required checks are
+# owned by each repo's sync-required-checks workflow (derived from that repo's
+# own `# required-check:` annotations).
 RULESET_NAME="template-default-branch-protection"
 
-# Required status-check contexts. Keep this in lockstep with the
-# `# required-check: true` reporter jobs in .github/workflows/ (the SSOT the
-# per-repo sync-required-checks workflow derives from).
-REQUIRED_CHECKS=(
-  format-check-passed
-  lint-passed
-  node-tests-passed
-  pre-commit-passed
-  validate-config-passed
-)
+# OPTIONAL org-wide baseline of required status checks. Leave EMPTY (default)
+# unless a context is reported by *every* managed repo without exception -- list
+# only those. Anything repo-specific belongs in that repo's workflow, not here.
+REQUIRED_CHECKS=()
 
 # PRs required before merge? Reviews required (0 = PR required, no approval gate).
 REQUIRE_PULL_REQUEST="true"

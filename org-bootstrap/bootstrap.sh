@@ -77,20 +77,29 @@ checks_payload() {
 
 sync_ruleset() {
   echo "Syncing branch-protection ruleset '${RULESET_NAME}' on ${ORG}..."
-  local checks rules payload existing_id
-  checks="$(checks_payload)"
+  local rules payload existing_id
 
-  rules="$(jq -n --argjson checks "$checks" '
-    [
-      { "type": "deletion" },
-      { "type": "non_fast_forward" },
+  # Universal rules only -- these hold for every repo regardless of its tests.
+  rules="$(jq -n '[
+    { "type": "deletion" },
+    { "type": "non_fast_forward" }
+  ]')"
+
+  # Required STATUS CHECKS are per-repo (repos run different tests), so they are
+  # owned by each repo's sync-required-checks workflow, not pinned org-wide --
+  # requiring a context a repo never emits would hang its PRs at pending forever.
+  # REQUIRED_CHECKS is an optional org-wide baseline: set it only to contexts
+  # EVERY managed repo is guaranteed to report. Empty (default) adds no
+  # required_status_checks rule at all.
+  if [[ "${#REQUIRED_CHECKS[@]}" -gt 0 ]]; then
+    rules="$(jq --argjson checks "$(checks_payload)" '. + [
       { "type": "required_status_checks",
         "parameters": {
           "strict_required_status_checks_policy": true,
           "required_status_checks": $checks
         }
-      }
-    ]')"
+      }]' <<<"$rules")"
+  fi
 
   if [[ "${REQUIRE_PULL_REQUEST:-false}" == "true" ]]; then
     rules="$(jq --argjson n "${REQUIRED_APPROVALS:-0}" '. + [

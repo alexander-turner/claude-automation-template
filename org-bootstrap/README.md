@@ -16,20 +16,23 @@ Provision and keep in sync the things a template **repo** can't carry on its own
 Secrets and protection rules are account/org state, not files, so `template-sync`
 can never carry them. This closes that gap.
 
-> **Ruleset overlap, on purpose.** An org ruleset and the per-repo
-> `sync-required-checks` workflow can both be active — GitHub evaluates every
-> matching ruleset and a check is required if _any_ of them requires it, so they
-> compose rather than fight. Two sane setups:
+> **Required checks are per-repo, not org-wide.** Different repos run different
+> tests, so their required status-check _contexts_ differ. Pinning a fixed set in
+> the org ruleset would require contexts some repos never emit — and a required
+> check that never reports hangs that repo's PRs at **pending forever**. So the
+> org ruleset here carries only **repo-agnostic** rules (block deletion, block
+> force-push, optional required-PR); it adds no `required_status_checks` rule
+> unless you opt in.
 >
-> - **Org-managed (simplest):** define required checks once here, in
->   `REQUIRED_CHECKS`, and skip the per-repo workflow + its `RULESET_SYNC_TOKEN`.
-> - **Repo-managed (most precise):** keep the per-repo workflow as the source of
->   truth (it derives the set from each repo's own `# required-check:`
->   annotations, so repos that drop a check aren't over-gated) and use the org
->   ruleset only for repo-agnostic rules (block deletion, block force-push).
+> Each repo's actual required checks are owned by its own `sync-required-checks`
+> workflow, which derives them from that repo's `# required-check:` annotations —
+> so a repo that adds, renames, or drops a test is gated on exactly what it runs.
+> Org ruleset and per-repo ruleset compose cleanly: GitHub requires a check if
+> _any_ matching ruleset requires it.
 >
-> Keep `REQUIRED_CHECKS` here in lockstep with the annotated reporter jobs in
-> `.github/workflows/` either way.
+> `REQUIRED_CHECKS` in the config is an **optional org-wide baseline** — set it
+> only to contexts _every_ managed repo reports without exception (rare; e.g. a
+> universal secret scan). Default is empty.
 
 ## Prerequisites
 
@@ -74,8 +77,10 @@ variable is skipped with a warning, never blanked.
   `SECRET_VISIBILITY`. This is how `RULESET_SYNC_TOKEN` (and any other shared
   secret) reaches all repos without per-repo copying.
 - **`ruleset`** — one org ruleset targeting the default branch of all repos
-  (`~ALL` / `~DEFAULT_BRANCH`): blocks deletion and force-push, requires the
-  `REQUIRED_CHECKS` contexts, and optionally requires a PR.
+  (`~ALL` / `~DEFAULT_BRANCH`): blocks deletion and force-push, and optionally
+  requires a PR. Adds a `required_status_checks` rule only if you set a non-empty
+  `REQUIRED_CHECKS` baseline (default empty — per-repo checks are owned by each
+  repo's `sync-required-checks` workflow).
 - **`defaults`** — org base permission, repo-creation policy, and default
   `GITHUB_TOKEN` workflow permissions; then per-repo merge hygiene
   (squash-only, delete branch on merge, auto-merge) on each managed repo.
