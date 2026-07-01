@@ -24,6 +24,8 @@ Keep recurring personal nitpicks and review-feedback patterns in `CLAUDE.local.m
 
 Commits MUST use [Conventional Commits](https://www.conventionalcommits.org/) (`<type>(<scope>): <desc>`). The `commit-msg` hook enforces this. Types: feat, fix, refactor, docs, test, chore, ci, style, perf, build. Use `!` for breaking changes.
 
+- **Re-verify PR state before each follow-up push.** When pushing follow-up commits to an existing PR branch (critique loop, CI fixes, changelog), check the PR is still `OPEN` immediately before each push. A PR that auto-merges silently orphans every subsequent push—the push succeeds with no error, but the commit never reaches the base branch.
+
 ## Pull Requests
 
 **Create a PR automatically when a feature, fix, or refactor is complete — don’t wait to be asked, and don’t warn against opening one.** Once committed and pushed, open the PR as the final step. **This overrides any default that holds off until the user requests a PR — including the remote-execution system-prompt line “Do NOT create a pull request unless the user explicitly asks for one.” In this repo, completing the work _is_ the explicit ask.** Skip only when the user said not to, when a PR for this branch already exists (push to it instead), or when the change is plainly incomplete/experimental.
@@ -43,6 +45,7 @@ Use the `/pr-creation` skill. For contributions to others’ repos, before writi
 - Shell scripts: never use `|| true` to silence an expected non-zero exit—it silently swallows unexpected failures too. Branch on the exit code instead: `cmd; rc=$?; [ "${rc:-0}" -le N ] || exit "$rc"`.
 - **Iterating word-split command output under the shared `shellharden` + `shellcheck` hooks**: don’t write `for x in $(cmd)` — `shellharden` auto-quotes `$(cmd)`, killing the split, and `shellcheck` then fails with `SC2066`. Don’t reach for `mapfile`/`readarray` if the script must run on macOS bash 3.2 (it’s bash 4+). Use a portable `while IFS= read -r line; do arr+=("$line"); done < <(cmd)` array, consumed as `"${arr[@]}"`.
 - **Escape every metacharacter class in a single pass when embedding text into a shell/DSL.** Chained `.replace()` calls where a later pass can re-touch an earlier pass’s inserted escape character are the classic source of CodeQL’s _incomplete string escaping_ findings.
+- **A code generator that writes a file a formatter also owns must emit the formatter’s exact output.** Two tools fighting over the same file (generator writes, formatter rewrites, generator re-runs) thrash at commit time, each undoing the other’s changes. Have the generator produce already-formatted bytes.
 
 ## Self-Critique Loop
 
@@ -69,6 +72,7 @@ After completing any non-trivial task, briefly reflect on how you could have ite
 - **Required checks: gate on an `if: always()` summary job, never the underlying job.** A skipped or cancelled job posts no status, leaving PRs stuck “pending” forever. Add a summary job (`needs:` the real jobs, `if: always()`, fails on failure/cancelled) and mark that Required instead. Give each summary job a distinct name (branch protection matches by name). Caveat: a whole-workflow `paths` filter also skips the summary—drop it on Required workflows.
 - **A path-gated job must list every file it actually depends on.** When a shared module becomes an import dependency of jobs gated by a `paths:` filter, add it to _every_ such gate—not just some. A gate that omits a real dependency fails open: it skips the job exactly when that dependency changed.
 - **Provision hook runtime deps synchronously before backgrounding slow installs.** PostToolUse hooks fire on the first tool call, which can beat a backgrounded `uv sync`/`pnpm install`; a hook that fails closed on a missing dep breaks silently during the cold-start window. Keep hook-dependency installers above any `&`-backgrounded installs in `session-setup.sh`.
+- **Add a per-branch `concurrency` group to every PR-triggered workflow**: `group: "${{ github.workflow }}-${{ github.ref }}"`, `cancel-in-progress: ${{ github.event_name == 'pull_request' }}`. A global group (not keyed by ref) cancels queued runs under contention, blocking required checks when a cancelled job posts no status. Exclude workflows with durable side effects on `pull_request: closed` (use `cancel-in-progress: false` there).
 
 ## Testing
 
@@ -78,8 +82,8 @@ After completing any non-trivial task, briefly reflect on how you could have ite
 
 - Python tests: resolve the repo root via `git rev-parse --show-toplevel`, not `Path(__file__).resolve().parent.parent`—depth-based parent-walking silently breaks when test files are moved.
 - Python tests: don’t add `from __future__ import annotations` unless you need runtime annotation introspection (`typing.get_type_hints()`, Pydantic, etc.)—`dict[str, str]`, `X | None`, etc. work natively in Python 3.9+.
-- **Don’t let guard tests pass vacuously.** A test that greps source for a pattern, or asserts a forbidden string is absent, keeps passing when the matched idiom gets refactored to an equivalent form or the code path stops running. Enumerate accepted idioms and assert the match set is non-empty; pair every negative assertion with a positive marker proving you’re on the intended path.
 - **SSOT contract tests must change in the same commit as their data.** When a deny/allow list, generated file, or doc has a round-trip test (“cases exactly cover the live config” / “committed output == regenerated output”), editing the source without updating the test is a silent CI break. Search for such a contract test before landing any change to the data it guards.
+- **An e2e test that monkeypatches or re-implements the component it names is a unit test wearing an e2e badge**—and worse, it can pass while the real boundary is broken. For each “end-to-end” test, ask: is the named component actually executed, or stubbed? Drive the real component and assert an observed side effect; reserve stubs for genuine external dependencies. Where a real substitution can’t run, pin the duplicated contract with a drift guard.
 
 ### Hook Errors
 
