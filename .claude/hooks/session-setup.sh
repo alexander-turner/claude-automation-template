@@ -17,6 +17,25 @@ warn() {
 }
 is_root() { [[ "$(id -u)" = "0" ]]; }
 
+# Append `export NAME=VALUE` to CLAUDE_ENV_FILE with VALUE shell-quoted via
+# bash's @Q operator. Interpolating a value straight into a double-quoted
+# string (e.g. "export X=\"$val\"") is not escaping it — a value containing a
+# `"` or `$` becomes arbitrary code in whatever later sources this file.
+emit_export() {
+  local name="$1" value="$2"
+  [[ -n "${CLAUDE_ENV_FILE:-}" ]] || return 0
+  echo "export $name=${value@Q}" >>"$CLAUDE_ENV_FILE"
+}
+
+# Append `export PATH=<quoted dir>:$PATH` — like emit_export, but $PATH must
+# stay unexpanded so it resolves against whatever PATH is active when the
+# file is later sourced, not the PATH at generation time.
+emit_path_prepend() {
+  local dir="$1"
+  [[ -n "${CLAUDE_ENV_FILE:-}" ]] || return 0
+  echo "export PATH=${dir@Q}:\$PATH" >>"$CLAUDE_ENV_FILE"
+}
+
 # Install a command via uv if missing
 uv_install_if_missing() {
   local cmd="$1" pkg="${2:-$1}"
@@ -88,9 +107,7 @@ _check_hook_syntax
 #######################################
 
 export PATH="$HOME/.local/bin:$PATH"
-if [[ -n "${CLAUDE_ENV_FILE:-}" ]]; then
-  echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
-fi
+emit_path_prepend "$HOME/.local/bin"
 
 #######################################
 # Tool installation (optional - warn on failure)
@@ -154,9 +171,7 @@ if [[ -z "${GH_REPO:-}" ]]; then
     GH_REPO="${BASH_REMATCH[1]}"
     GH_REPO="${GH_REPO%.git}"
     export GH_REPO
-    if [[ -n "${CLAUDE_ENV_FILE:-}" ]]; then
-      echo "export GH_REPO=\"$GH_REPO\"" >>"$CLAUDE_ENV_FILE"
-    fi
+    emit_export GH_REPO "$GH_REPO"
   fi
 fi
 
@@ -210,9 +225,7 @@ if [[ -f "$PROJECT_DIR/uv.lock" ]] && command -v uv &>/dev/null; then
   # Add .venv/bin to PATH so Python tools are available to hooks
   if [[ -d "$PROJECT_DIR/.venv/bin" ]]; then
     export PATH="$PROJECT_DIR/.venv/bin:$PATH"
-    if [[ -n "${CLAUDE_ENV_FILE:-}" ]]; then
-      echo "export PATH=\"$PROJECT_DIR/.venv/bin:\$PATH\"" >>"$CLAUDE_ENV_FILE"
-    fi
+    emit_path_prepend "$PROJECT_DIR/.venv/bin"
   fi
 fi
 
