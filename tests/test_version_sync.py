@@ -12,9 +12,14 @@ hooks behave differently from CI:
     - .pre-commit-config.yaml          (additional_dependencies: ["zizmor==X"])
     - .github/workflows/zizmor.yaml    (uvx zizmor==X)
 
-This test is the machine-checkable form of the "keep in sync" comment in
-session-setup.sh. Each case is checked independently so a failure names the
-exact file pair that drifted.
+  python (the interpreter pre-commit's Python-based hooks run under):
+    - .python-version
+    - .pre-commit-config.yaml          (default_language_version: python:)
+    - .github/workflows/pre-commit.yaml (actions/setup-python python-version:)
+
+This test is the machine-checkable form of the "keep in sync" comments in
+session-setup.sh and .pre-commit-config.yaml. Each case is checked
+independently so a failure names the exact file pair that drifted.
 """
 
 import re
@@ -26,6 +31,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SESSION_SETUP = REPO_ROOT / ".claude" / "hooks" / "session-setup.sh"
 PRE_COMMIT_CFG = REPO_ROOT / ".pre-commit-config.yaml"
 ZIZMOR_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "zizmor.yaml"
+PYTHON_VERSION_FILE = REPO_ROOT / ".python-version"
+PRE_COMMIT_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pre-commit.yaml"
 
 
 def _search(pattern: str, path: Path, *, flags: int = 0) -> str:
@@ -66,7 +73,23 @@ def _zizmor_pins() -> dict[str, str]:
     }
 
 
-@pytest.mark.parametrize("pins_fn", [_ruff_pins, _zizmor_pins], ids=["ruff", "zizmor"])
+def _python_pins() -> dict[str, str]:
+    return {
+        ".python-version": PYTHON_VERSION_FILE.read_text().strip(),
+        ".pre-commit-config.yaml": _search(
+            r"default_language_version:\s*\n\s*python:\s*python(\S+)", PRE_COMMIT_CFG
+        ),
+        "pre-commit.yaml": _search(
+            r'python-version:\s*"?(\S+?)"?\s*$', PRE_COMMIT_WORKFLOW, flags=re.MULTILINE
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    "pins_fn",
+    [_ruff_pins, _zizmor_pins, _python_pins],
+    ids=["ruff", "zizmor", "python"],
+)
 def test_version_pins_agree(pins_fn) -> None:
     pins = pins_fn()
     unique = set(pins.values())
